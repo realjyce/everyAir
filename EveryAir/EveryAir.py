@@ -101,11 +101,8 @@ def fetch_real_time_pm2_5(lat, lon):
             pm2_5 = data['list'][0]['components']['pm2_5']
             return pm2_5
         except (KeyError, IndexError):
-            st.error("Error parsing the JSON response.")
+            st.error("Parsing Error")
             return None
-    else:
-        st.error("Failed to fetch real-time data. Check your API key or coordinates.")
-        return None
 
 real_time_pm2_5 = fetch_real_time_pm2_5(latitude, longitude)
 
