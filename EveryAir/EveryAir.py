@@ -19,14 +19,14 @@ from sklearn.metrics import mean_absolute_error
 def load_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-load_css("style.css")
+load_css("EveryAir/style.css")
 
 # Load Dataset (Historical)
-file_path = "Asia_Dataset.csv"
+file_path = "EveryAir/Asia_Dataset.csv"
 df = pd.read_csv(file_path)
 
 # User's Input & Selection
-st.sidebar.image("Location1.svg", use_container_width=True)
+st.sidebar.image("EveryAir/Location1.svg", use_container_width=True)
 city_coordinates = {
     'Tokyo': (35.6895, 139.6917),
     'Delhi': (28.6139, 77.2090),
@@ -111,7 +111,7 @@ real_time_pm2_5 = fetch_real_time_pm2_5(latitude, longitude)
 
 # Streamlit Web Deployment
 # Logo
-logo = "everyAirFinal.svg"
+logo = "EveryAir/everyAirFinal.svg"
 col1, col2, col3 = st.columns([1, 1.7, 1])
 with col2:
     st.image(logo, use_container_width=400)
@@ -223,7 +223,7 @@ if st.session_state.show_content:
 
         st.write(f"⚠️\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t⚠️")
         st.header("Forecast Results")
-        st.code(f"📡 Real-Time PM2.5 Data for {city}: {real_time_pm2_5:.    2f} µg/m³")
+        st.code(f"📡 Real-Time PM2.5 Data for {city}: {real_time_pm2_5:.2f} µg/m³")
         st.code(f"🔮 Predicted PM2.5 Level for {city}: {predicted_pm2_5:.2f} µg/m³")
 
         # Visualisation
