@@ -15,6 +15,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 
+#Page Title and Favicon
+st.set_page_config(
+    page_title="everyAir",
+    page_icon="EveryAir/everyAir.png",
+)
+
 # Custom Integrate CSS
 def load_css(file_name):
     with open(file_name) as f:
