@@ -22,8 +22,8 @@ def load_css(file_name):
 load_css("EveryAir/style.css")
 
 st.set_page_config(
-    page_title="everyAir";
-    page_icon="everyAir.png";
+    page_title="everyAir",
+    page_icon="everyAir.png"
 )
 
 # Load Dataset (Historical)
