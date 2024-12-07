@@ -1,0 +1,8 @@
+[server]
+port = 8501
+
+[theme]
+backgroundColor='#ffffff'
+
+[mapbox]
+token=''
