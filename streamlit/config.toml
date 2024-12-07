@@ -4,9 +4,9 @@ port = 8501
 [theme]
 base="light"
 
-[mapbox]
-token=''
-
 [browser]
 title = "everyAir"
 favicon = "../everyAir.png"
+
+[mapbox]
+token=''
