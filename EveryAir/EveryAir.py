@@ -21,11 +21,6 @@ def load_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 load_css("EveryAir/style.css")
 
-st.set_page_config(
-    page_title="everyAir",
-    page_icon="everyAir.png"
-)
-
 # Load Dataset (Historical)
 file_path = "EveryAir/Asia_Dataset.csv"
 df = pd.read_csv(file_path)
