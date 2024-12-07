@@ -5,7 +5,7 @@ port = 8501
 base="light"
 
 [browser]
-favicon = "EveryAir/everyAir.png"
+favicon = "../everyAir.png"
 
 [mapbox]
 token=''
