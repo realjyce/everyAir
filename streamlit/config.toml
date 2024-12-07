@@ -9,4 +9,4 @@ token=''
 
 [browser]
 title = "everyAir"
-favicon = "⛅"
+favicon = "../everyAir.png"
