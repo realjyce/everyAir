@@ -18,7 +18,7 @@ from sklearn.metrics import mean_absolute_error
 #Page Title and Favicon
 st.set_page_config(
     page_title="everyAir",
-    page_icon="EveryAir/everyAir.png",
+    page_icon="⛅",
 )
 
 # Custom Integrate CSS
