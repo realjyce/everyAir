@@ -46,7 +46,7 @@ region = {
 df["Region"] = df["Country"].map(region)
 
 # User's Input & Selection
-st.sidebar.image("EveryAir/Location1.svg", use_container_width=True)
+st.sidebar.image("EveryAir/Location1.svg", width=283, use_container_width=False)
 city_coordinates = {
     'Tokyo': (35.6895, 139.6917),
     'Delhi': (28.6139, 77.2090),
@@ -58,10 +58,10 @@ city_coordinates = {
     'Kolkata': (22.5726, 88.3639),
 }
 city = st.sidebar.selectbox("Select City", list(city_coordinates.keys()), index=0)
-st.sidebar.write(f"City Selected: {city}")
+st.sidebar.write(f"🌍 City Selected: {city}")
 latitude, longitude = city_coordinates[city]
-st.sidebar.code(f"\tLatitude: {latitude}")
-st.sidebar.code(f"\tLongitude: {longitude}")
+st.sidebar.code(f"\tLatitude: {latitude}°")
+st.sidebar.code(f"\tLongitude: {longitude}°")
 
 # Convert month string to numerical val
 month_map = {
@@ -90,8 +90,8 @@ def fetch_additional(lat, lon):
     if response.status_code == 200:
         try:
             data = response.json()
-            temperature = data.get['main', {}].get['temp', None]
-            humidity = data.get['main', {}].get['humidity', None]
+            temperature = data.get('main', {}).get('temp', None) - 273.15
+            humidity = data.get('main', {}).get('humidity', None)
             return temperature, humidity
         except (KeyError, IndexError) as e:
             st.error("Parsing Error: {e}")
@@ -102,8 +102,9 @@ def fetch_additional(lat, lon):
     
 temperature, humidity = fetch_additional(latitude, longitude)
 if temperature is not None:
-    st.sidebar.write(f"🌡️ Temperature: {temperature} °C")
-    st.sidebar.write(f"💧 Humidity: {humidity} %")
+    st.sidebar.write("🌦️ Live Weather Information:")
+    st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
+    st.sidebar.code(f"💧 Humidity: {humidity} %")
 
     data['Temperature'] = temperature
     data['Humidity'] = humidity
@@ -142,6 +143,12 @@ models = {
     "Gradient Boosting": GradientBoostingRegressor(random_state=42),
     "XGBoost": XGBRegressor(random_state=42),
 }
+model_scores = {}
+for model_type, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    model_scores[model_type] = mae
 
 model_scores = {}
 for model_type, model in models.items():
@@ -151,12 +158,10 @@ for model_type, model in models.items():
     model_scores[model_type] = mae
 
 best_model = min(model_scores, key=model_scores.get)
-st.write(f"### Model Performance")
-st.json(model_scores)
-st.write(f"#🥇 Best Performance: **{best_model}**")
+best_model_instance = models[best_model]
 
 # Real-Time Data
-best_model_instance = models[best_model]
+
 def fetch_real_time_pm2_5(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
@@ -173,7 +178,7 @@ real_time_pm2_5 = fetch_real_time_pm2_5(latitude, longitude)
 
 # Streamlit Web Deployment
 # Logo
-logo = "everyAirFinal.svg"
+logo = "everyAir/everyAirFinal.svg"
 col1, col2, col3 = st.columns([1, 1.7, 1])
 with col2:
     st.image(logo, use_container_width=400)
