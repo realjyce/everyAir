@@ -12,8 +12,13 @@ import plotly.graph_objects as go
 import folium
 from streamlit_folium import folium_static
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
+
+# Import Other ML Libraries
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 
 #Page Title and Favicon
 st.set_page_config(
@@ -30,6 +35,15 @@ load_css("EveryAir/style.css")
 # Load Dataset (Historical)
 file_path = "EveryAir/Asia_Dataset.csv"
 df = pd.read_csv(file_path)
+
+# Regional Data Sorting
+region = {
+    "India" : "South Asia",
+    "Pakistan" : "South Asia",
+    "Japan" : "East Asia",
+    "Thailand" : "South East Asia"
+}
+df["Region"] = df["Country"].map(region)
 
 # User's Input & Selection
 st.sidebar.image("EveryAir/Location1.svg", use_container_width=True)
@@ -64,30 +78,38 @@ data['Month'] = data['Month'].map(month_map)
 data = data.dropna(subset=['PM2.5'])
 print(data.isnull().sum())
 
-# Features and target
-X = data[['Month', '2023']]
-y = data['PM2.5']
-
-# Splitting | Train-test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Current Date
-current_month = datetime.now().month
-current_year = datetime.now().year
-
-# Training Model
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
-
-y_pred = model.predict(X_test)
-mae = mean_absolute_error(y_test, y_pred)
-print(f"Mean Absolute Error for {city}: {mae}")
-
 # API Key & Default Vals
 API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5')
 lat_default, lon_default = 35.6895, 139.6917  # Default: Tokyo
 city_default = "Tokyo"  # Default City
 
+# Fetch Additional Weather Data | Temperature & Humidity
+def fetch_additional(lat, lon): 
+    url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            temperature = data.get['main', {}].get['temp', None]
+            humidity = data.get['main', {}].get['humidity', None]
+            return temperature, humidity
+        except (KeyError, IndexError) as e:
+            st.error("Parsing Error: {e}")
+            return None, None
+    else:
+        st.error("Error: {response.status_code}")
+        return None
+    
+temperature, humidity = fetch_additional(latitude, longitude)
+if temperature is not None:
+    st.sidebar.write(f"🌡️ Temperature: {temperature} °C")
+    st.sidebar.write(f"💧 Humidity: {humidity} %")
+
+    data['Temperature'] = temperature
+    data['Humidity'] = humidity
+else:
+    st.sidebar.write("Data Fetch Failed:\n");
+    st.sidebar.write("Please try again later (￣﹏￣；)");
 # Input to float
 try:
     latitude = float(latitude)
@@ -97,7 +119,44 @@ except ValueError:
     latitude = lat_default
     longitude = lon_default
 
+# Features and target
+X = data[['Month', '2023']]
+# New Humidity and temperature feature
+if 'Temperature' in data.columns and 'Humidity' in data.columns:
+    X['Temperature'] = data['Temperature']
+    X['Humidity'] = data['Humidity']
+
+y = data['PM2.5']
+
+# Splitting | Train-test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Current Date
+current_month = datetime.now().month
+current_year = datetime.now().year
+
+# Extended Models
+models = {
+    "Random Forest": RandomForestRegressor(n_estimators= 100, random_state=42),
+    "Linear Regression": LinearRegression(),
+    "Gradient Boosting": GradientBoostingRegressor(random_state=42),
+    "XGBoost": XGBRegressor(random_state=42),
+}
+
+model_scores = {}
+for model_type, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    model_scores[model_type] = mae
+
+best_model = min(model_scores, key=model_scores.get)
+st.write(f"### Model Performance")
+st.json(model_scores)
+st.write(f"#🥇 Best Performance: **{best_model}**")
+
 # Real-Time Data
+best_model_instance = models[best_model]
 def fetch_real_time_pm2_5(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
@@ -114,11 +173,13 @@ real_time_pm2_5 = fetch_real_time_pm2_5(latitude, longitude)
 
 # Streamlit Web Deployment
 # Logo
-logo = "EveryAir/everyAirFinal.svg"
+logo = "everyAirFinal.svg"
 col1, col2, col3 = st.columns([1, 1.7, 1])
 with col2:
     st.image(logo, use_container_width=400)
 
+if 'show_content' not in st.session_state:
+    st.session_state.show_content = False
 if st.button("Click to start the app"): 
     st.session_state.show_content = True
     # Gauge meter for PM2.5
@@ -208,7 +269,7 @@ if st.session_state.show_content:
     if real_time_pm2_5 is not None:
 
         input_features = [[current_month, current_year]]
-        predicted_pm2_5 = model.predict(input_features)[0]
+        predicted_pm2_5 = best_model_instance.predict(input_features)[0]
 
         # Display gauge
         create_gauge_chart(real_time_pm2_5, predicted_pm2_5, city)
@@ -222,7 +283,7 @@ if st.session_state.show_content:
         if st.button("Predict"):
             month_numeric = month_map[month]
             input_features = [[month_numeric, yearly_avg]]
-            prediction = model.predict([[month_numeric, yearly_avg]])
+            prediction = best_model_instance.predict([[month_numeric, yearly_avg]])
 
         st.write(f"⚠️\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t⚠️")
         st.header("Forecast Results")
@@ -255,9 +316,9 @@ if st.session_state.show_content:
         # If default: January's prediction
         if real_time_pm2_5 is None:
             fig.add_trace(go.Scatter(
-                x=[1], y=[model.predict([[1, 100.0]])[0]], mode='markers+text', name='January Prediction',
+                x=[1], y=[best_model_instance.predict([[1, 100.0]])[0]], mode='markers+text', name='January Prediction',
                 marker=dict(color='red', size=10),
-                text=[f"{model.predict([[1, 100.0]])[0]:.2f} µg/m³"], textposition="top center"
+                text=[f"{best_model_instance.predict([[1, 100.0]])[0]:.2f} µg/m³"], textposition="top center"
             ))
             st.plotly_chart(fig)
 
