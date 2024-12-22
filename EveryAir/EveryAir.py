@@ -4,6 +4,7 @@ import warnings
 import requests
 import streamlit as st
 import os
+import time
 from matplotlib import pyplot as plt
 from datetime import datetime
 import seaborn as sns
@@ -58,7 +59,7 @@ city_coordinates = {
     'Kolkata': (22.5726, 88.3639),
 }
 city = st.sidebar.selectbox("Select City", list(city_coordinates.keys()), index=0)
-st.sidebar.write(f"🌍 City Selected: {city}")
+st.sidebar.write(f"🌍 City Selected: **{city}**")
 latitude, longitude = city_coordinates[city]
 st.sidebar.code(f"\tLatitude: {latitude}°")
 st.sidebar.code(f"\tLongitude: {longitude}°")
@@ -183,10 +184,19 @@ col1, col2, col3 = st.columns([1, 1.7, 1])
 with col2:
     st.image(logo, use_container_width=400)
 
+# Loading Animation
+globe = ["🌍", "🌎", "🌏"]
+dots = [".", "..", "..."]
+placeholder = st.empty()
+
 if 'show_content' not in st.session_state:
     st.session_state.show_content = False
 if st.button("Click to start the app"): 
     st.session_state.show_content = True
+    for _ in range(10):
+      for emoji in globe:
+          placeholder.markdown(f"<h3 style='text-align:center; color: #004a0d; font-family: monospace, sans-serif; margin-top: 0.9em; margin-bottom: -15em; transition: opacity 350ms ease-in-out, transform 350ms ease-in-out; transform: translateY(0.2em);'>rotating planet... {emoji} </h3>", unsafe_allow_html=True)
+          time.sleep(0.5)
     # Gauge meter for PM2.5
 if st.session_state.show_content:
     def create_gauge_chart(pm2_5_value, prediction_value, city):

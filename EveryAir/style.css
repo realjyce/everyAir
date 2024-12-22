@@ -4,7 +4,7 @@
 }
 
 /*First Button*/
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(3) > div > button
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button
 {
     scale: 1.2;
     background-color: #003c8b;
@@ -12,25 +12,29 @@
     color: #ffffff;
     margin-top: 3.8em;
     margin-left: 36.2%;
-    transition: scale 350ms ease-in-out, opacity 350ms linear, color 350ms ease-in-out, background-color 350ms ease-in-out, border 350ms ease;    
+    transition: scale 350ms ease-in-out, opacity 350ms linear, color 350ms ease-in-out, background-color 350ms ease-in-out, border 350ms ease, transform 550ms ease-in-out;     
 }
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(3) > div > button:hover
+
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:hover
 {
     scale: 1.22;
     color:#ffffff;
     background-color: #245595;
     border: solid 1px #001dbe;
 }
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(3) > div > button:active
+
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:active
 {
     scale: 0.7;
+    transform: translateY(3em);
 }
 
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(3) > div > button:focus
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:focus
 {
     color: #153775;
     background-color: #ffffff;
     border: solid 1px #1a6ad3;
+    transform: translateY(3em);
 }
 
 /*SVG*/
