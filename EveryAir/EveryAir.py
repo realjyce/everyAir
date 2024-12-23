@@ -37,22 +37,28 @@ load_css("EveryAir/style.css")
 file_path = "EveryAir/Asia_Dataset.csv"
 df = pd.read_csv(file_path)
 
-#API Key for OpenWeatherAPI
-API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5')
-
-# Regional Data Sorting
-region = {
-    "India" : "South Asia",
-    "Pakistan" : "South Asia",
-    "Japan" : "East Asia",
-    "Thailand" : "South East Asia"
-}
-df["Region"] = df["Country"].map(region)
-
 # User's Input & Selection
 st.sidebar.image("EveryAir/Location1.svg", width=283, use_container_width=False)
 
+# API Call for city coordinates | OpenWeatherMap & GeoNames (for cities)
+API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5') #API Key for OpenWeatherAPI
+
+# GeoNames API
+GEO_NAMES_API = "jyce" # Username for API Key
+def get_cities(GEO_NAMES_API=GEO_NAMES_API, max_rows=20):
+    url = f"http://api.geonames.org/searchJSON?formatted=true&continentCode=AS&maxRows=100&lang=en&username={GEO_NAMES_API}"
+    response = requests.get(url);
+
+    if response.status_code == 200:
+        data = response.json()
+        cities = [city['name'] for city in data['geonames']]
+        return cities
+    else:
+        return []
+
+# GeoCoding API | OpenWeatherMap
 def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
+
     url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name},{state_code},{country_code}&limit={limit}&appid={API_KEY}"
     response = requests.get(url)
     
@@ -64,25 +70,27 @@ def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
             return None
     else:
         return None
-
-cities = ['Tokyo', 'Delhi', 'Beijing', 'Bangkok', 'Lahore', 'New Delhi', 'Mumbai', 'Kolkata']
-
+    
+cities = get_cities()
 city_coordinates = {}
 
+# City Coords & Listing
 for city in cities:
     coords = get_coords(city, API_KEY)
     if coords:
         city_coordinates[city] = coords
 
-city = st.sidebar.selectbox("Select City", cities)
+cities = [city for city in cities if city not in ["Asia", "Southern Asia"]]
 
-if city in city_coordinates:
-    latitude, longitude = city_coordinates[city]
-    st.sidebar.write(f"🌍 City Selected: **{city}**")
-    st.sidebar.code(f"\tLatitude: {latitude:.4f}°")
-    st.sidebar.code(f"\tLongitude: {longitude:.4f}°")
-else:
-    st.sidebar.error("Not Found")
+if cities:
+    city = st.sidebar.selectbox("Select City", cities)
+    if city in city_coordinates:
+        latitude, longitude = city_coordinates[city]
+        st.sidebar.write(f"🌍 City Selected: **{city}**")
+        st.sidebar.code(f"\tLatitude: {latitude:.4f}°")
+        st.sidebar.code(f"\tLongitude: {longitude:.4f}°")
+    else:
+        st.sidebar.error("Not Found")
 
 
 # Convert month string to numerical val

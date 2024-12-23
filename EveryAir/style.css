@@ -13,7 +13,7 @@
     margin-top: 3.8em;
     margin-left: 36.2%;
     transition: scale 350ms ease-in-out, opacity 550ms ease, color 350ms ease-in-out, background-color 350ms ease-in-out, border 350ms ease, transform 650ms ease-in;     
-    animation: move 15s ease-in-out 4.5s forwards, vanish 500ms ease 10s forwards;
+    animation: move 5s ease-in-out 11.5s forwards, vanish 500ms ease 10s forwards;
 }
 
 #root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:hover
