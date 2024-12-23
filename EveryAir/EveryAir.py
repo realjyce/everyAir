@@ -45,6 +45,7 @@ API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5'
 
 # GeoNames API
 GEO_NAMES_API = "jyce" # Username for API Key
+@st.cache_data
 def get_cities(GEO_NAMES_API, max_cities=10):
     url = f"http://api.geonames.org/searchJSON?formatted=true&continentCode=AS&maxRows=100&lang=en&username={GEO_NAMES_API}"
     response = requests.get(url);
@@ -57,6 +58,7 @@ def get_cities(GEO_NAMES_API, max_cities=10):
         return []
 cities = get_cities(GEO_NAMES_API, max_cities=10)
 # GeoCoding API | OpenWeatherMap
+@st.cache_data
 def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
 
     url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name},{state_code},{country_code}&limit={limit}&appid={API_KEY}"
@@ -187,6 +189,7 @@ best_model_instance = models[best_model]
 
 # Real-Time Data
 
+@st.cache_data
 def fetch_real_time_pm2_5(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
