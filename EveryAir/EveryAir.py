@@ -55,7 +55,7 @@ def get_cities(GEO_NAMES_API=GEO_NAMES_API, max_rows=20):
         return cities
     else:
         return []
-
+cities = get_cities()
 # GeoCoding API | OpenWeatherMap
 def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
 
@@ -71,7 +71,7 @@ def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
     else:
         return None
     
-cities = get_cities()
+
 city_coordinates = {}
 
 # City Coords & Listing
@@ -107,10 +107,6 @@ data['PM2.5'] = pd.to_numeric(data['PM2.5'], errors='coerce')
 data['Month'] = data['Month'].map(month_map)
 data = data.dropna(subset=['PM2.5'])
 print(data.isnull().sum())
-
-#Default Vals For Sidebar
-lat_default, lon_default = 35.6895, 139.6917  # Default: Tokyo
-city_default = "Tokyo"  # Default City
 
 # Fetch Additional Weather Data | Temperature & Humidity
 def fetch_additional(lat, lon): 
