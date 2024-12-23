@@ -136,8 +136,8 @@ except ValueError:
 X = data[['Month', '2023']]
 # New Humidity and temperature feature
 if 'Temperature' in data.columns and 'Humidity' in data.columns:
-    X['Temperature'] = data['Temperature']
-    X['Humidity'] = data['Humidity']
+    X.loc[:,'Temperature'] = data['Temperature']
+    X.loc[:,'Humidity'] = data['Humidity']
 
 y = data['PM2.5']
 
