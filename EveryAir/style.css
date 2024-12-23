@@ -12,7 +12,8 @@
     color: #ffffff;
     margin-top: 3.8em;
     margin-left: 36.2%;
-    transition: scale 350ms ease-in-out, opacity 350ms linear, color 350ms ease-in-out, background-color 350ms ease-in-out, border 350ms ease, transform 550ms ease-in-out;     
+    transition: scale 350ms ease-in-out, opacity 550ms ease, color 350ms ease-in-out, background-color 350ms ease-in-out, border 350ms ease, transform 650ms ease-in;     
+    animation: move 15s ease-in-out 4.5s forwards, vanish 500ms ease 10s forwards;
 }
 
 #root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:hover
@@ -26,7 +27,8 @@
 #root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:active
 {
     scale: 0.7;
-    transform: translateY(3em);
+    transform: translateY(4em);
+    opacity: 0;
 }
 
 #root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > button:focus
@@ -34,15 +36,16 @@
     color: #153775;
     background-color: #ffffff;
     border: solid 1px #1a6ad3;
-    transform: translateY(3em);
+    transform: translateY(4em);
+    opacity: 0;
 }
 
 /*SVG*/
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > div > div > div > div
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(5) > div > div > div > div > div
 {
     margin-bottom: 3.5em;
 }
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(4) > div > div > div > div > div > svg:nth-child(1){
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(5) > div > div > div > div > div > svg:nth-child(1){
     background: #006fff;
     color: #ffffff;
     font-style: oblique;
@@ -55,7 +58,7 @@
 }
 
 /*Second Button*/
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(8) > div > button{
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(9) > div > button{
     margin-left: 37%;
     margin-top: 2em;
     margin-bottom: 2em;
@@ -65,23 +68,23 @@
     color: #ffffff;
     transition: scale 350ms ease-in-out, opacity 350ms linear, color 350ms ease-in-out, background-color 350ms ease-in-out, border 350ms ease;    
 }
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(8) > div > button:hover{
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(9) > div > button:hover{
     scale: 1.02;
     color:#ffffff;
     background-color: #2971ce;
     border: solid 1px #006fff;
 }
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(8) > div > button:active
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(9) > div > button:active
 {
     scale: 0.7;
 }
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(8) > div > button:focus{
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(9) > div > button:focus{
     color: #153775;
     background-color: #ffffff;
     border: solid 1px #1a6ad3;
 }
 
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(9) > div
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(10) > div
 {
     box-shadow: 0px 1px 8px rgba(0, 0, 0, 0.259);
     border-radius: 14px;
@@ -95,7 +98,7 @@
 }
 
 /*MAP*/
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(15) > iframe
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(16) > iframe
 {
     box-shadow: 0px 1px 8px rgba(0, 0, 0, 0.259);
     min-width: 120%;
@@ -103,7 +106,27 @@
     border-radius: 14px;
 }
 
-#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(15)
+#root > div:nth-child(1) > div.withScreencast > div > div > section.stMain.st-emotion-cache-bm2z3a.ea3mdgi8 > div.stMainBlockContainer.block-container.st-emotion-cache-13ln4jf.ea3mdgi5 > div > div > div > div:nth-child(16)
 {
     padding-right: 120%;
+}
+
+@keyframes move
+{
+    from{
+        
+    }
+    to{
+        transform: translateY(5em);
+        
+    }
+}
+@keyframes vanish
+{
+    from{
+        
+    }
+    to{
+        opacity: 0;
+    }
 }

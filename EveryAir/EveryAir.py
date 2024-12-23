@@ -23,7 +23,7 @@ from xgboost import XGBRegressor
 
 #Page Title and Favicon
 st.set_page_config(
-    page_title="everyAir",
+    page_title="everyAir – Your everyday air",
     page_icon="⛅",
 )
 
@@ -37,6 +37,9 @@ load_css("EveryAir/style.css")
 file_path = "EveryAir/Asia_Dataset.csv"
 df = pd.read_csv(file_path)
 
+#API Key for OpenWeatherAPI
+API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5')
+
 # Regional Data Sorting
 region = {
     "India" : "South Asia",
@@ -48,21 +51,39 @@ df["Region"] = df["Country"].map(region)
 
 # User's Input & Selection
 st.sidebar.image("EveryAir/Location1.svg", width=283, use_container_width=False)
-city_coordinates = {
-    'Tokyo': (35.6895, 139.6917),
-    'Delhi': (28.6139, 77.2090),
-    'Beijing': (39.9042, 116.4074),
-    'Bangkok': (13.7563, 100.5018),
-    'Lahore': (31.5204, 74.3587),
-    'New Delhi': (28.6139, 77.2090),
-    'Mumbai': (19.0760, 72.8777),
-    'Kolkata': (22.5726, 88.3639),
-}
-city = st.sidebar.selectbox("Select City", list(city_coordinates.keys()), index=0)
-st.sidebar.write(f"🌍 City Selected: **{city}**")
-latitude, longitude = city_coordinates[city]
-st.sidebar.code(f"\tLatitude: {latitude}°")
-st.sidebar.code(f"\tLongitude: {longitude}°")
+
+def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
+    url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name},{state_code},{country_code}&limit={limit}&appid={API_KEY}"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data:
+            return data[0]['lat'], data[0]['lon']
+        else:
+            return None
+    else:
+        return None
+
+cities = ['Tokyo', 'Delhi', 'Beijing', 'Bangkok', 'Lahore', 'New Delhi', 'Mumbai', 'Kolkata']
+
+city_coordinates = {}
+
+for city in cities:
+    coords = get_coords(city, API_KEY)
+    if coords:
+        city_coordinates[city] = coords
+
+city = st.sidebar.selectbox("Select City", cities)
+
+if city in city_coordinates:
+    latitude, longitude = city_coordinates[city]
+    st.sidebar.write(f"🌍 City Selected: **{city}**")
+    st.sidebar.code(f"\tLatitude: {latitude:.4f}°")
+    st.sidebar.code(f"\tLongitude: {longitude:.4f}°")
+else:
+    st.sidebar.error("Not Found")
+
 
 # Convert month string to numerical val
 month_map = {
@@ -79,8 +100,7 @@ data['Month'] = data['Month'].map(month_map)
 data = data.dropna(subset=['PM2.5'])
 print(data.isnull().sum())
 
-# API Key & Default Vals
-API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5')
+#Default Vals For Sidebar
 lat_default, lon_default = 35.6895, 139.6917  # Default: Tokyo
 city_default = "Tokyo"  # Default City
 
@@ -100,18 +120,7 @@ def fetch_additional(lat, lon):
     else:
         st.error("Error: {response.status_code}")
         return None
-    
-temperature, humidity = fetch_additional(latitude, longitude)
-if temperature is not None:
-    st.sidebar.write("🌦️ Live Weather Information:")
-    st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
-    st.sidebar.code(f"💧 Humidity: {humidity} %")
 
-    data['Temperature'] = temperature
-    data['Humidity'] = humidity
-else:
-    st.sidebar.write("Data Fetch Failed:\n");
-    st.sidebar.write("Please try again later (￣﹏￣；)");
 # Input to float
 try:
     latitude = float(latitude)
@@ -137,6 +146,18 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 current_month = datetime.now().month
 current_year = datetime.now().year
 
+temperature, humidity = fetch_additional(latitude, longitude)
+if temperature is not None:
+    st.sidebar.write("🌦️ Live Weather Information:")
+    st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
+    st.sidebar.code(f"💧 Humidity: {humidity} %")
+
+    X.loc[:,'Temperature'] = temperature
+    X.loc[:,'Humidity'] = humidity
+else:
+    st.sidebar.write("Data Fetch Failed:\n");
+    st.sidebar.write("Please try again later (￣﹏￣；)");
+
 # Extended Models
 models = {
     "Random Forest": RandomForestRegressor(n_estimators= 100, random_state=42),
@@ -144,6 +165,7 @@ models = {
     "Gradient Boosting": GradientBoostingRegressor(random_state=42),
     "XGBoost": XGBRegressor(random_state=42),
 }
+
 model_scores = {}
 for model_type, model in models.items():
     model.fit(X_train, y_train)
@@ -201,8 +223,8 @@ if st.button("Click to start the app"):
 if st.session_state.show_content:
     def create_gauge_chart(pm2_5_value, prediction_value, city):
         fig = go.Figure()
-
-        # Gauge meter according to Real-Time Data
+        placeholder.empty()
+        # Gauge meter acc   ording to Real-Time Data
         fig.add_trace(go.Indicator(
             mode="gauge+number",
             value=pm2_5_value,
