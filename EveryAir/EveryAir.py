@@ -45,17 +45,17 @@ API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5'
 
 # GeoNames API
 GEO_NAMES_API = "jyce" # Username for API Key
-def get_cities(GEO_NAMES_API=GEO_NAMES_API, max_rows=5):
+def get_cities(GEO_NAMES_API, max_cities=20):
     url = f"http://api.geonames.org/searchJSON?formatted=true&continentCode=AS&maxRows=100&lang=en&username={GEO_NAMES_API}"
     response = requests.get(url);
 
     if response.status_code == 200:
         data = response.json()
-        cities = [city['name'] for city in data['geonames']]
+        cities = [city['name'] for city in data['geonames'][:max_cities]]
         return cities
     else:
         return []
-cities = get_cities()
+cities = get_cities(GEO_NAMES_API, max_cities=20)
 # GeoCoding API | OpenWeatherMap
 def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
 
