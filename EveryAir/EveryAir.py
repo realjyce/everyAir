@@ -58,7 +58,7 @@ def get_cities(GEO_NAMES_API, max_cities=10):
         return []
 cities = get_cities(GEO_NAMES_API, max_cities=10)
 # GeoCoding API | OpenWeatherMap
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
 
     url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name},{state_code},{country_code}&limit={limit}&appid={API_KEY}"
@@ -111,7 +111,7 @@ data = data.dropna(subset=['PM2.5'])
 print(data.isnull().sum())
 
 # Fetch Additional Weather Data | Temperature & Humidity
-@st.cache_data
+@st.cache_data(ttl=3600)
 def fetch_additional(lat, lon): 
     url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
