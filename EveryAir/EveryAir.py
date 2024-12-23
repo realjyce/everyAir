@@ -189,8 +189,6 @@ best_model = min(model_scores, key=model_scores.get)
 best_model_instance = models[best_model]
 
 # Real-Time Data
-
-@st.cache_data
 def fetch_real_time_pm2_5(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
