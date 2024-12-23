@@ -131,8 +131,6 @@ try:
     longitude = float(longitude)
 except ValueError:
     st.error("Latitude and Longitude must be numeric.")
-    latitude = lat_default
-    longitude = lon_default
 
 # Features and target
 X = data[['Month', '2023']]
