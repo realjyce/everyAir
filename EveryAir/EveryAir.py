@@ -203,7 +203,7 @@ real_time_pm2_5 = fetch_real_time_pm2_5(latitude, longitude)
 
 # Streamlit Web Deployment
 # Logo
-logo = "everyAir/everyAirFinal.svg"
+logo = "./EveryAir/everyAirFinal.svg"
 col1, col2, col3 = st.columns([1, 1.7, 1])
 with col2:
     st.image(logo, use_container_width=400)
