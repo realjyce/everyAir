@@ -111,6 +111,7 @@ data = data.dropna(subset=['PM2.5'])
 print(data.isnull().sum())
 
 # Fetch Additional Weather Data | Temperature & Humidity
+@st.cache_data
 def fetch_additional(lat, lon): 
     url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
     response = requests.get(url)
