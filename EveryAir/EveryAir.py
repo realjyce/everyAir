@@ -45,7 +45,7 @@ API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5'
 
 # GeoNames API
 GEO_NAMES_API = "jyce" # Username for API Key
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_cities(GEO_NAMES_API, max_cities=10):
     url = f"http://api.geonames.org/searchJSON?formatted=true&continentCode=AS&maxRows=100&lang=en&username={GEO_NAMES_API}"
     response = requests.get(url);
