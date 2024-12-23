@@ -133,11 +133,11 @@ except ValueError:
     st.error("Latitude and Longitude must be numeric.")
 
 # Features and target
-X = data[['Month', '2023']]
+X = data[['Month', '2023']].copy()
 # New Humidity and temperature feature
 if 'Temperature' in data.columns and 'Humidity' in data.columns:
-    X.loc[:,'Temperature'] = data['Temperature']
-    X.loc[:,'Humidity'] = data['Humidity']
+    X['Temperature'] = data['Temperature']
+    X['Humidity'] = data['Humidity']
 
 y = data['PM2.5']
 
@@ -154,8 +154,8 @@ if temperature is not None:
     st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
     st.sidebar.code(f"💧 Humidity: {humidity} %")
 
-    X.loc[:,'Temperature'] = temperature
-    X.loc[:,'Humidity'] = humidity
+    X['Temperature'] = temperature
+    X['Humidity'] = humidity
 else:
     st.sidebar.write("Data Fetch Failed:\n");
     st.sidebar.write("Please try again later (￣﹏￣；)");
