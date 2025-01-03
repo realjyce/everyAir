@@ -41,7 +41,7 @@ df = pd.read_csv(file_path)
 st.sidebar.image("EveryAir/Location1.svg", width=283, use_container_width=False)
 
 # API Call for city coordinates | OpenWeatherMap & GeoNames (for cities)
-API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '1608a88c9b9447cdb307c577157dcac5') #API Key for OpenWeatherAPI
+API_KEY = '1608a88c9b9447cdb307c577157dcac5' #API Key for OpenWeatherAPI
 
 # GeoNames API
 GEO_NAMES_API = "jyce" # Username for API Key
@@ -59,7 +59,7 @@ def get_cities(GEO_NAMES_API, max_cities=50):
 cities = get_cities(GEO_NAMES_API, max_cities=50)
 # GeoCoding API | OpenWeatherMap
 @st.cache_data(ttl=3600)
-def get_coords(city_name, API_KEY, state_code="", country_code="", limit=1):
+def get_coords(city_name, API_KEY, state_code="", country_code="", limit=100):
 
     url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name},{state_code},{country_code}&limit={limit}&appid={API_KEY}"
     response = requests.get(url)
@@ -110,7 +110,7 @@ data['Month'] = data['Month'].map(month_map)
 data = data.dropna(subset=['PM2.5'])
 print(data.isnull().sum())
 
-# Fetch Additional Weather Data | Temperature & Humidity
+# Fetch Additional Weather Data | Meteorological Data
 @st.cache_data(ttl=3600)
 def fetch_additional(lat, lon): 
     url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
@@ -120,10 +120,15 @@ def fetch_additional(lat, lon):
             data = response.json()
             temperature = data.get('main', {}).get('temp', None) - 273.15
             humidity = data.get('main', {}).get('humidity', None)
-            return temperature, humidity
+            wind_speed = data.get('wind', {}).get('speed', None)
+            min_temp = data.get('main', {}).get('temp_min', None) - 273.15
+            max_temp = data.get('main', {}).get('temp_max', None) - 273.15
+            rainfall = data.get('rain', {}).get('1h', 0)
+
+            return temperature, humidity, wind_speed, min_temp, max_temp, rainfall
         except (KeyError, IndexError) as e:
             st.error("Parsing Error: {e}")
-            return None, None
+            return None, None, None, None, None, None
     else:
         st.error("Error: {response.status_code}")
         return None
@@ -133,7 +138,7 @@ try:
     latitude = float(latitude)
     longitude = float(longitude)
 except ValueError:
-    st.error("Latitude and Longitude must be numeric.")
+    st.error("Latitude and Longitude are NaN.")
 
 # Features and target
 X = data[['Month', '2023']].copy()
@@ -151,14 +156,16 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 current_month = datetime.now().month
 current_year = datetime.now().year
 
-temperature, humidity = fetch_additional(latitude, longitude)
+temperature, humidity, wind_speed, min_temp, max_temp, rainfall = fetch_additional(latitude, longitude)
 if temperature is not None:
     st.sidebar.write("🌦️ Live Weather Information:")
     st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
     st.sidebar.code(f"💧 Humidity: {humidity} %")
+    st.sidebar.code(f"☔ Rainfall: {rainfall} mm")
 
     X['Temperature'] = temperature
     X['Humidity'] = humidity
+    X['Rainfall'] = rainfall
 else:
     st.sidebar.write("Data Fetch Failed:\n");
     st.sidebar.write("Please try again later (￣﹏￣；)");
@@ -311,6 +318,24 @@ if st.session_state.show_content:
 
         input_features = [[current_month, current_year]]
         predicted_pm2_5 = best_model_instance.predict(input_features)[0]
+
+        # The Extra Weather Details
+        if temperature is not None: 
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Temperature", round(temperature), "°C")
+            with col2:
+                st.metric("Min Temp", round(min_temp), "°C")
+            with col3:
+                st.metric("Max Temp", round(max_temp), "°C")
+            col4, col5, col6 = st.columns(3)
+            with col4:
+                st.metric("Wind Speed", wind_speed, "m/s")
+            with col5:
+                st.metric("Humidity", humidity, "%")
+            with col6:
+                st.metric("Rainfall", rainfall, "mm")
+            
 
         # Display gauge
         create_gauge_chart(real_time_pm2_5, predicted_pm2_5, city)
