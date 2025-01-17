@@ -1,0 +1,83 @@
+﻿Country,City,Pct_Proportion_of_land_Allocate,Street_density_Km_per_Km2,Intersection_density_No_per_Km2,Regions,Area_of_Interest,ObjectId
+Australia,Melbourne,26.2,22.4,184.1,"Europe, Northern America and Oceania",City Core,1
+Australia,Sydney,25.7,22,179.2,"Europe, Northern America and Oceania",City Core,2
+Belgium,Brussels,25.1,19.1,141.5,"Europe, Northern America and Oceania",City Core,3
+Canada,Calgary,22.6,19.8,161.1,"Europe, Northern America and Oceania",City Core,4
+Canada,Montreal,29.1,24.9,214.9,"Europe, Northern America and Oceania",City Core,5
+Canada,Toronto,33.5,28.6,254.3,"Europe, Northern America and Oceania",City Core,6
+Denmark,Copenhagen,22.7,19.5,130,"Europe, Northern America and Oceania",City Core,7
+Finland,Helsinki,22.9,25.2,276.7,"Europe, Northern America and Oceania",City Core,8
+France,Paris,29.7,27.9,242.9,"Europe, Northern America and Oceania",City Core,9
+Greece,Athens,28.6,28.8,255.9,"Europe, Northern America and Oceania",City Core,10
+Netherlands,Amsterdam,29.1,30.7,314.4,"Europe, Northern America and Oceania",City Core,11
+Newzealand,Auckland,18.1,12.7,72.9,"Europe, Northern America and Oceania",City Core,12
+Russia,Moscow,14,12.8,86.9,"Europe, Northern America and Oceania",City Core,13
+Russia,Saint Petersburg,18.5,14.7,113.3,"Europe, Northern America and Oceania",City Core,14
+Spain,Barcelona,33,23.8,181.7,"Europe, Northern America and Oceania",City Core,15
+United Kingdom,London,30,25.7,224.7,"Europe, Northern America and Oceania",City Core,16
+United States of America,Los Angeles,22.9,20,163.1,"Europe, Northern America and Oceania",City Core,17
+United States of America,New York,36,26.3,173.3,"Europe, Northern America and Oceania",City Core,18
+United States of America,Phoenix,19.3,17.1,132.5,"Europe, Northern America and Oceania",City Core,19
+United States of America,"Washington, D.C.",24.8,21.5,179.5,"Europe, Northern America and Oceania",City Core,20
+China,Beijing,19.1,17.1,104.7," Africa, Asia, Latin America and the Caribbean",City Core,28
+Hong Kong,Hong Kong,33.7,35.7,382.1," Africa, Asia, Latin America and the Caribbean",City Core,29
+India,Kolkota,15.2,22.6,212.4," Africa, Asia, Latin America and the Caribbean",City Core,39
+Japan,Tokyo,28.8,30.2,323.8," Africa, Asia, Latin America and the Caribbean",City Core,42
+Singapore,Singapore,21.6,16.9,109.4," Africa, Asia, Latin America and the Caribbean",City Core,53
+Thailand,Bangkok,15.9,14.9,76," Africa, Asia, Latin America and the Caribbean",City Core,56
+Australia,Melbourne,12.9,11.8,80.9,"Europe, Northern America and Oceania",Sub-urban area,61
+Australia,Melbourne,0,12,0,"Europe, Northern America and Oceania",Total,62
+Australia,Sydney,12.4,11.4,75.9,"Europe, Northern America and Oceania",Sub-urban area,63
+Belgium,Brussels,13.8,11.7,72.6,"Europe, Northern America and Oceania",Sub-urban area,64
+Canada,Calgary,8.3,8.2,38.2,"Europe, Northern America and Oceania",Sub-urban area,65
+Canada,Montreal,15,13.8,105.4,"Europe, Northern America and Oceania",Sub-urban area,66
+Canada,Toronto,16,14.4,103.8,"Europe, Northern America and Oceania",Sub-urban area,67
+Denmark,Copenhagen,8.7,7.5,32.7,"Europe, Northern America and Oceania",Sub-urban area,68
+Finland,Helsinki,9.8,13.3,120.6,"Europe, Northern America and Oceania",Sub-urban area,69
+France,Paris,13,12,78.9,"Europe, Northern America and Oceania",Sub-urban area,70
+Greece,Athens,13.5,13.1,87.5,"Europe, Northern America and Oceania",Sub-urban area,71
+Netherlands,Amsterdam,11.4,11.6,80.6,"Europe, Northern America and Oceania",Sub-urban area,72
+Newzealand,Auckland,10,7.8,35.3,"Europe, Northern America and Oceania",Sub-urban area,73
+Russia,Moscow,,,,"Europe, Northern America and Oceania",Sub-urban area,74
+Russia,Saint Petersburg,8.3,7.3,37.9,"Europe, Northern America and Oceania",Sub-urban area,75
+Spain,Barcelona,13,10.1,54.7,"Europe, Northern America and Oceania",Sub-urban area,76
+United Kingdom,London,15,13.6,103,"Europe, Northern America and Oceania",Sub-urban area,77
+United States of America,Los Angeles,,,,"Europe, Northern America and Oceania",Sub-urban area,78
+United States of America,New York,12.3,11.4,72.3,"Europe, Northern America and Oceania",Sub-urban area,79
+United States of America,Phoenix,,,,"Europe, Northern America and Oceania",Sub-urban area,80
+United States of America,"Washington, D.C.",,,,"Europe, Northern America and Oceania",Sub-urban area,81
+China,Beijing,6.1,4.3,12.8," Africa, Asia, Latin America and the Caribbean",Sub-urban area,89
+Hong Kong,Hong Kong,9.1,10.9,50.8," Africa, Asia, Latin America and the Caribbean",Sub-urban area,90
+India,Kolkota,9,12.6,113.3," Africa, Asia, Latin America and the Caribbean",Sub-urban area,100
+Japan,Tokyo,12.4,0,0," Africa, Asia, Latin America and the Caribbean",Sub-urban area,103
+Singapore,Singapore,9.9,7.8,32," Africa, Asia, Latin America and the Caribbean",Sub-urban area,114
+Thailand,Bangkok,5.8,5.3,20.8," Africa, Asia, Latin America and the Caribbean",Sub-urban area,117
+Australia,Sydney,0,15.7,0,"Europe, Northern America and Oceania",Total,119
+Belgium,Brussels,19.4,,,"Europe, Northern America and Oceania",Total,123
+Canada,Calgary,15.5,8.3,39.1,"Europe, Northern America and Oceania",Total,124
+Canada,Montreal,0,14.4,0,"Europe, Northern America and Oceania",Total,125
+Canada,Toronto,27.8,16.4,125.4,"Europe, Northern America and Oceania",Total,126
+Denmark,Copenhagen,15.7,,,"Europe, Northern America and Oceania",Total,127
+Finland,Helsinki,16.4,,,"Europe, Northern America and Oceania",Total,128
+France,Paris,21.4,,,"Europe, Northern America and Oceania",Total,129
+Greece,Athens,21,,,"Europe, Northern America and Oceania",Total,130
+Netherlands,Amsterdam,20.3,,,"Europe, Northern America and Oceania",Total,131
+Newzealand,Auckland,14.1,,,"Europe, Northern America and Oceania",Total,132
+Russia,Moscow,,,,"Europe, Northern America and Oceania",Total,133
+Russia,Saint Petersburg,13.4,,,"Europe, Northern America and Oceania",Total,134
+Spain,Barcelona,33,,,"Europe, Northern America and Oceania",Total,135
+United Kingdom,London,0,,,"Europe, Northern America and Oceania",Total,136
+United States of America,Los Angeles,,,,"Europe, Northern America and Oceania",Total,137
+United States of America,New York,24.1,,,"Europe, Northern America and Oceania",Total,138
+United States of America,Phoenix,,,,"Europe, Northern America and Oceania",Total,139
+United States of America,"Washington, D.C.",,,,"Europe, Northern America and Oceania",Total,140
+Bangladesh,Dhaka,5.7,7.7,," Africa, Asia, Latin America and the Caribbean",Total,142
+China,Beijing,12.6,21.4,," Africa, Asia, Latin America and the Caribbean",Total,148
+Hong Kong,Hong Kong,21.4,46.6,," Africa, Asia, Latin America and the Caribbean",Total,149
+India,Kolkata,12.1,35.2,," Africa, Asia, Latin America and the Caribbean",Total,159
+India,Mumbai,10,13.7,74," Africa, Asia, Latin America and the Caribbean",Total,160
+Indonesia,Jakarta,9.5,7.76,0," Africa, Asia, Latin America and the Caribbean",Total,161
+Japan,Tokyo,20.6,30.2,," Africa, Asia, Latin America and the Caribbean",Total,162
+Malaysia,Kuala Lumpur,13.5,13,76.2," Africa, Asia, Latin America and the Caribbean",Total,164
+Singapore,Singapore,15.8,24.7,," Africa, Asia, Latin America and the Caribbean",Total,173
+Thailand,Bangkok,10.8,20.2,," Africa, Asia, Latin America and the Caribbean",Total,176
