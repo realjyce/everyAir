@@ -36,17 +36,17 @@ st.set_page_config(
 def load_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-load_css("EveryAir/style.css")
+load_css("style.css")
 
 # Load Datasets
-file_path = "EveryAir/Asia_Dataset.csv"
+file_path = "Asia_Dataset.csv"
 df = pd.read_csv(file_path)
-street_df = pd.read_csv("EveryAir/Global_Street_Density.csv")
+street_df = pd.read_csv("Global_Street_Density.csv")
 street_df = street_df[street_df['Regions'].str.contains('Asia', case=False, na=False)]
 street_df = street_df[street_df['Area_of_Interest'].str.contains('Total', case=False, na=False)]
 
-pop_df = pd.read_csv("EveryAir/pop_density.csv")
-ndvi_df = pd.read_csv("EveryAir/ndvi.csv")
+pop_df = pd.read_csv("pop_density.csv")
+ndvi_df = pd.read_csv("ndvi.csv")
 
 ndvi_df.replace(99999.0, np.nan, inplace=True)
 
@@ -69,7 +69,7 @@ def get_cities(df, max_cities=150):
 cities = get_cities(street_df, max_cities=150)
 
 # User's Input & Selection
-st.sidebar.image("EveryAir/Location1.svg", width=283, use_container_width=False)
+st.sidebar.image("Location1.svg", width=283, use_container_width=False)
 
 # API Call for city coordinates | OpenWeatherMap
 API_KEY = '1608a88c9b9447cdb307c577157dcac5' #API Key for OpenWeatherAPI
@@ -284,7 +284,7 @@ real_time_pm2_5 = fetch_real_time_pm2_5(latitude, longitude)
 
 # Streamlit Web Deployment
 # Logo
-logo = "EveryAir/everyAirFinal.svg"
+logo = "everyAirFinal.svg"
 col1, col2, col3 = st.columns([1, 1.7, 1])
 with col2:
     st.image(logo, use_container_width=400)
