@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import StandardScaler
 from folium.plugins import MarkerCluster
-from folium.plugins import HeatMapWithTime
+from folium.plugins import HeatMap
 import geopandas as gpd
 from geopy.distance import geodesic
 
@@ -267,9 +267,6 @@ for model_type, model in models.items():
 best_model = min(model_scores, key=model_scores.get)
 best_model_instance = models[best_model]
 
-# Riskmapping
-
-
 # Real-Time Data
 def fetch_real_time_pm2_5(lat, lon):
     url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
@@ -336,11 +333,11 @@ if st.session_state.show_content:
             gauge={
                 "axis": {"range": [0, 500]},
                 "steps": [
-                    {"range": [0, 50], "color": "green"},    
-                    {"range": [50, 100], "color": "yellow"},
-                    {"range": [100, 150], "color": "orange"},
-                    {"range": [150, 200], "color": "red"},  
-                    {"range": [200, 500], "color": "darkred"}
+                    {"range": [0, 50], "color": "#5bfc6b"},    
+                    {"range": [50, 100], "color": "#dcfc5b"},
+                    {"range": [100, 150], "color": "#fc965b"},
+                    {"range": [150, 200], "color": "#ff4b33"},  
+                    {"range": [200, 500], "color": "#9e1010"}
                 ],
                 "bar": {"color": "black"}
             }
@@ -354,12 +351,10 @@ if st.session_state.show_content:
         st.plotly_chart(fig, use_container_width=False)
 
     def show_city_on_map(city, latitude, longitude, input_features, best_model_instance, real_time_pm2_5=None):
-    # Map with LAT & LON
-        st.code(f"Real-time PM2.5 value: {real_time_pm2_5}")
-        m = folium.Map(
-            location=[latitude, longitude],
-            zoom_start=12,
-        )
+        st.write(f"### Heatmap for {city}")
+
+        m = folium.Map(location=[latitude, longitude], zoom_start=9)
+
         prediction_value = best_model_instance.predict(input_features)[0]
         folium.Marker(
             location=[latitude, longitude],
@@ -367,43 +362,22 @@ if st.session_state.show_content:
             icon=folium.Icon(color='navy', icon='info-sign')
         ).add_to(m)
 
-        if real_time_pm2_5 is not None:
-            if real_time_pm2_5 < 50:
-                color = 'green'
-            elif real_time_pm2_5 < 100:
-                color = 'yellow'
-            elif real_time_pm2_5 < 150:
-                color = 'orange'
-            elif real_time_pm2_5 < 200:
-                color = 'red'
-            else:
-                color = 'darkred'
+        lat_grid = np.linspace(latitude - 0.1, latitude + 0.1, 21)
+        lon_grid = np.linspace(longitude - 0.1, longitude + 0.1, 21)
+        lat_grid, lon_grid = np.meshgrid(lat_grid, lon_grid)
+        grid_points = np.vstack([lat_grid.ravel(), lon_grid.ravel()]).T
 
-            folium.CircleMarker(
-                location=[latitude, longitude],
-                radius=100,
-                color=color,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.6,
-                popup=f"Real-Time PM2.5: {real_time_pm2_5:.2f} µg/m³"
-            ).add_to(m)
+        predictions = best_model_instance.predict(grid_points)
 
-        # Prediction indicator
-        if prediction_value is not None:
-            folium.Circle(
-                location=[latitude, longitude],
-                radius=2000,
-                color='red',
-                weight=2,
-                fill=True,
-                fill_color='red',
-                fill_opacity=0.3,
-                popup=f"Predicted PM2.5: {prediction_value:.2f} µg/m³"
-            ).add_to(m)
+        heatmap_data = [
+            [lat_grid.ravel()[i], lon_grid.ravel()[i], predictions[i]] 
+            for i in range(len(grid_points))
+        ]
 
-        # Streamlit Map Render
+        HeatMap(heatmap_data, radius=15, blur=25, max_val=200).add_to(m)
+
         folium_static(m)
+
 
     def heatmap_show(pm2_5_grid, lat_grid, lon_grid):
         plt.figure(figsize=(8, 6))
@@ -465,27 +439,29 @@ if st.session_state.show_content:
         # Yearly avg prediction input
         st.write("### Predict PM2.5 for a specific month")
         month = st.selectbox("Select Month:", list(month_map.keys()))
-        yearly_avg = st.number_input("Enter yearly average (2023) pollution level:", value=100.0)
+        yearly_avg = st.number_input("Enter yearly average pollution level:", value=100.0)
         # Prediction
         if st.button("Predict"):
             with st.spinner(text="Predicting..."):
-                time.sleep(1)
-            st.toast("Result Found!")
+                time.sleep(2)
             month_numeric = month_map[month]
             input_features = [[month_numeric, yearly_avg]]
             prediction = best_model_instance.predict([[month_numeric, yearly_avg]])
-
-        st.write(f"⚠️\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t⚠️")
-        st.header("Forecast Results")
-        st.code(f"📡 Real-Time PM2.5 Data for {city}: {real_time_pm2_5:.2f} µg/m³")
-        st.code(f"🔮 Predicted PM2.5 Level for {city}: {predicted_pm2_5:.2f} µg/m³")
+            with st.status("Predicting Data..."):
+                st.write("Fetching trained data...")
+                time.sleep(2)
+                st.write("Making prediction...")
+                time.sleep(1)
+                st.write("Success!")
+                time.sleep(1)
+        st.success(f"🔎\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t")
+        st.title("Forecast Results")
 
         # Visualisation
         fig = go.Figure()
-        # Plot historical data
+
         fig.add_trace(go.Scatter(x=data['Month'], y=data['PM2.5'], mode='lines', name='Historical PM2.5'))
 
-        # Plot only when real-time PM2.5 is available
         if real_time_pm2_5 is not None:
             fig.add_trace(go.Scatter(
                 x=[current_month], y=[predicted_pm2_5], mode='markers+text', name='Prediction',
@@ -501,5 +477,6 @@ if st.session_state.show_content:
         )
 
         st.plotly_chart(fig)
-        show_city_on_map(city, latitude, longitude, input_features, best_model_instance, real_time_pm2_5=real_time_pm2_5)
-        heatmap_show(heatmap_pm2_5, lat_grid, lon_grid)
+        st.code(f"📡 Real-Time PM2.5 Data for {city}: {real_time_pm2_5:.2f} µg/m³")
+        st.code(f"🔮 Predicted PM2.5 Level for {city}: {predicted_pm2_5:.2f} µg/m³")
+        show_city_on_map(city, latitude, longitude, input_features, best_model_instance, real_time_pm2_5=real_time_pm2_5)   
