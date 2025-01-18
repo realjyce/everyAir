@@ -167,10 +167,9 @@ def fetch_ndvi(lat_query, lon_query):
 def fetch_industrial_sites_near_city(lat, lon, radius_km=50):
     url = "http://overpass-api.de/api/interpreter"
     
-    # Roughly convert radius in km to degrees (1 degree ≈ 111 km)
     delta = radius_km / 111.0
     
-    # Bounding box
+    # bbox (Bounding Box)
     bbox = f"{lat - delta},{lon - delta},{lat + delta},{lon + delta}"
     
     query = f"""
@@ -313,7 +312,7 @@ if st.button("Click to start the app"):
             time.sleep(0.4)
     placeholder.empty()
     for _ in range(2):
-        placeholder.markdown(f"<h3 style='text-align:center; color: #004a0d; font-family: monospace, sans-serif; margin-top: 0.9em; margin-bottom: -15em; transition: opacity 350ms ease-in-out, transform 350ms ease-in-out; transform: translateY(0.2em);'>enjoy today's air!</h3>", unsafe_allow_html=True)
+        placeholder.markdown(f"<h3 style='text-align:center; color: #004a0d; font-family: monospace, sans-serif; margin-top: 0.9em; margin-bottom: -15em; transition: opacity 350ms ease-in-out, transform 350ms ease-in-out; transform: translateY(0.2em);'>enjoy your air!</h3>", unsafe_allow_html=True)
         time.sleep(0.4)
     
 
@@ -354,7 +353,6 @@ if st.session_state.show_content:
 
         m = folium.Map(location=[latitude, longitude], zoom_start=9)
 
-        prediction_value = best_model_instance.predict(input_features)[0]
         folium.Marker(
             location=[latitude, longitude],
             popup=f"PM2.5 Level: {real_time_pm2_5:.2f} µg/m³" if real_time_pm2_5 is not None else "PM2.5 Data not available",
