@@ -204,7 +204,6 @@ def fetch_industrial_sites_near_city(lat, lon, radius_km=50):
         print(f"Error Fetching Data: {response.status_code} - {response.text}")
         return []
 
-# Example usage
 industrial_sites = fetch_industrial_sites_near_city(latitude, longitude)
 
 # Input to float
