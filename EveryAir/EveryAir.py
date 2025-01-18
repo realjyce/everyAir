@@ -46,7 +46,7 @@ street_df = street_df[street_df['Regions'].str.contains('Asia', case=False, na=F
 street_df = street_df[street_df['Area_of_Interest'].str.contains('Total', case=False, na=False)]
 
 pop_df = pd.read_csv("EveryAir/pop_density.csv")
-ndvi_df = pd.read_csv("EveryAir/ndvi.csv")
+ndvi_df = pd.read_csv("EveryAir/ndvi.CSV")
 
 ndvi_df.replace(99999.0, np.nan, inplace=True)
 
