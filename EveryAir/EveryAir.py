@@ -36,7 +36,7 @@ st.set_page_config(
 def load_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-load_css("style.css")
+load_css("EveryAir/style.css")
 
 # Load Datasets
 file_path = "EveryAir/Asia_Dataset.csv"
