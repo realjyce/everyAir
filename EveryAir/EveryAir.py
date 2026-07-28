@@ -308,30 +308,21 @@ _gate = st.empty()
 _start = False
 if not st.session_state.show_content:
     with _gate.container():
-        _l, _mid, _r = st.columns([1, 2, 1])
+        _l, _mid, _r = st.columns([1, 1.7, 1])
         with _mid:
             _start = st.button("Show me the air", use_container_width=True, type="primary")
 
 if _start:
     st.session_state.show_content = True
-    for _ in range(2):
-        for emoji in globe:
-            placeholder.markdown(f"<h3 style='text-align:center; color: #004a0d; font-family: monospace, sans-serif; margin-top: 0.9em; margin-bottom: -15em; transition: opacity 350ms ease-in-out, transform 350ms ease-in-out; transform: translateY(0.2em);'>rotating planet... {emoji} </h3>", unsafe_allow_html=True)
-            time.sleep(0.3)
-    placeholder.empty()
-    for _ in range(2):
-        for emoji in umbrella:
-            placeholder.markdown(f"<h3 style='text-align:center; color: #004a0d; font-family: monospace, sans-serif; margin-top: 0.9em; margin-bottom: -15em; transition: opacity 350ms ease-in-out, transform 350ms ease-in-out; transform: translateY(0.2em);'>collecting rain... {emoji} </h3>", unsafe_allow_html=True)
-            time.sleep(0.5)
-    for _ in range(2):
-        for emoji in weathers:
-            placeholder.markdown(f"<h3 style='text-align:center; color: #004a0d; font-family: monospace, sans-serif; margin-top: 0.9em; margin-bottom: -15em; transition: opacity 350ms ease-in-out, transform 350ms ease-in-out; transform: translateY(0.2em);'>checking weather... {emoji} </h3>", unsafe_allow_html=True)
-            time.sleep(0.4)
-    placeholder.empty()
-    placeholder.markdown("<h3 class='ea-loading'>enjoy your air!</h3>", unsafe_allow_html=True)
-    time.sleep(0.4)
-    placeholder.empty()
     _gate.empty()
+    for label, frames, pause in (("rotating planet", globe, 0.22),
+                                 ("collecting rain", umbrella, 0.22),
+                                 ("checking weather", weathers, 0.16)):
+        for emoji in frames:
+            placeholder.markdown(
+                f"<h3 class='ea-loading'>{label}... {emoji}</h3>", unsafe_allow_html=True)
+            time.sleep(pause)
+    placeholder.empty()
     st.rerun()
     
 
@@ -369,7 +360,7 @@ if st.session_state.show_content:
         st.plotly_chart(fig, use_container_width=True)
 
     def show_city_on_map(city, latitude, longitude, input_features, best_model_instance, real_time_pm2_5=None, predicted_pm2_5=None):
-        st.write(f"### Heatmap for {city}")
+        st.subheader(f"Where it settles in {city}")
 
         m = folium.Map(location=[latitude, longitude], zoom_start=9)
 
@@ -416,7 +407,7 @@ if st.session_state.show_content:
             gradient={0.0: '#2c7bb6', 0.35: '#abd9e9', 0.55: '#ffffbf', 0.75: '#fdae61', 1.0: '#d7191c'},
         ).add_to(m)
 
-        folium_static(m)
+        folium_static(m, width=1120, height=520)
 
 
     def heatmap_show(pm2_5_grid, lat_grid, lon_grid):
@@ -441,34 +432,71 @@ if st.session_state.show_content:
         # belongs in the label: st.metric's third argument is a delta, so
         # passing "people/km2" there rendered a green up-arrow next to every
         # number as though everything had just improved.
-        if temperature is not None and pop_density is not None:
-            st.caption("Urban")
-            u1, u2, u3, u4 = st.columns(4)
-            u1.metric("Population", f"{round(pop_density):,}", help="People per km²")
-            u2.metric("Street density", f"{street_density:g}", help="Road km per km²")
-            u3.metric("Greenness", f"{ndvi:.2f}", help="NDVI, higher is greener")
-            u4.metric(
-                "Nearest industry",
-                f"{round(nearest_industrial)} km" if dist else f">{SEARCH_RADIUS_KM} km",
-                help="Distance to the closest industrial site tagged in OpenStreetMap",
+        ICONS = {
+            "population": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+            "streets": '<path d="M4 19V5"/><path d="M20 19V5"/><path d="M12 5v3"/><path d="M12 11v3"/><path d="M12 17v2"/>',
+            "green": '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
+            "industry": '<path d="M2 20h20"/><path d="M4 20V9l5 3V9l5 3V9l5 3v8"/><path d="M9 20v-4h3v4"/>',
+            "temp": '<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0Z"/>',
+            "wind": '<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>',
+            "humidity": '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5S5 13 5 15a7 7 0 0 0 7 7Z"/>',
+            "rain": '<path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 0 9H7"/><path d="M8 19v2"/><path d="M12 19v3"/><path d="M16 19v2"/>',
+        }
+
+        def tile(icon, label, value, note=""):
+            return (
+                f'<div class="ea-tile">'
+                f'<svg class="ea-tile__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                f'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">{ICONS[icon]}</svg>'
+                f'<div class="ea-tile__body">'
+                f'<span class="ea-tile__label">{label}</span>'
+                f'<span class="ea-tile__value">{value}</span>'
+                f'<span class="ea-tile__note">{note}</span>'
+                f'</div></div>'
             )
 
-            st.caption("Weather")
-            w1, w2, w3, w4 = st.columns(4)
-            w1.metric("Temperature", f"{round(temperature)} °C",
-                      help=f"Today between {round(min_temp)} and {round(max_temp)} °C")
-            w2.metric("Wind", f"{wind_speed:g} m/s")
-            w3.metric("Humidity", f"{humidity}%")
-            w4.metric("Rainfall", f"{rainfall:g} mm")
+        if temperature is not None and pop_density is not None:
+            industry_value = f"{round(nearest_industrial)} km" if dist else f"{SEARCH_RADIUS_KM}+ km"
+            industry_note = "to nearest site" if dist else "none mapped nearby"
+
+            st.markdown("<p class='ea-group'>Urban</p>", unsafe_allow_html=True)
+            st.markdown(
+                "<div class='ea-grid'>"
+                + tile("population", "Population", f"{round(pop_density):,}".replace(",", " "), "people per km²")
+                + tile("streets", "Street density", f"{street_density:g}", "road km per km²")
+                + tile("green", "Greenness", f"{ndvi:.2f}", "NDVI, 0 to 1")
+                + tile("industry", "Industry", industry_value, industry_note)
+                + "</div>",
+                unsafe_allow_html=True,
+            )
+
+            _temp_note = (f"{round(min_temp)}° to {round(max_temp)}° today"
+                          if round(min_temp) != round(max_temp) else "feels steady today")
+
+            st.markdown("<p class='ea-group'>Weather</p>", unsafe_allow_html=True)
+            st.markdown(
+                "<div class='ea-grid'>"
+                + tile("temp", "Temperature", f"{round(temperature)}°C", _temp_note)
+                + tile("wind", "Wind", f"{wind_speed:g}", "metres per second")
+                + tile("humidity", "Humidity", f"{humidity}%", "relative")
+                + tile("rain", "Rainfall", f"{rainfall:g}", "mm in the last hour")
+                + "</div>",
+                unsafe_allow_html=True,
+            )
         
 
         # Display gauge
         create_gauge_chart(real_time_pm2_5, predicted_pm2_5, city)
 
         # Yearly avg prediction input
-        st.write("### Predict PM2.5 for a specific month")
-        month = st.selectbox("Select Month:", list(month_map.keys()))
-        yearly_avg = st.number_input("Enter yearly average pollution level:", value=100.0)
+        st.subheader("Predict a month")
+        _city_avg = float(data['2023'].iloc[0]) if len(data) else 100.0
+        pc1, pc2 = st.columns(2)
+        with pc1:
+            month = st.selectbox("Month", list(month_map.keys()))
+        with pc2:
+            yearly_avg = st.number_input(
+                "Yearly average (µg/m³)", value=round(_city_avg, 1), step=1.0)
         # Prediction
         if st.button("Predict"):
             with st.spinner(text="Predicting..."):
@@ -488,7 +516,7 @@ if st.session_state.show_content:
             # existed. The NameError took every section below it down with it.
             st.success(f"🔎\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t")
 
-        st.title("Forecast Results")
+        st.subheader("Forecast")
 
         # Visualisation
         fig = go.Figure()

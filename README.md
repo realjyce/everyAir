@@ -36,18 +36,19 @@ number on every point is noise.
 
 ### Weather and urban features
 
-Eight tiles in two rows of four: population density, street density, NDVI
-greenness and distance to the nearest industrial site, then temperature, wind,
-humidity and rainfall. Those are the numbers the model actually eats, not
-decoration.
+Eight tiles, each with an icon, a label, the number, and what the number is in.
+Population density, street density, NDVI greenness and distance to the nearest
+industrial site, then temperature, wind, humidity and rainfall. Those are what
+the model eats, not decoration.
 
-`>50 km` on the industry tile is a real answer rather than a failure. Overpass
+`50+ km` on the industry tile is a real answer rather than a failure. Overpass
 gets asked for industrial landuse inside a 50 km box and sometimes there is
 genuinely nothing in it, so the tile says so instead of the page falling over.
 
-The units live in the value, not in the delta slot. Passing `"people/km2"` as
-`st.metric`'s third argument puts a green up arrow next to it, which reads as
-"population density improved" and means nothing at all.
+These are hand rolled rather than `st.metric`. Streamlit's own metric truncates
+long labels, and its third argument is a delta, so passing `"people/km2"` there
+puts a green up arrow beside the number as though population density had just
+improved.
 
 ### Geospatial heatmap
 

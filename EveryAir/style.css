@@ -343,76 +343,86 @@
    Streamlit treats as public and does not churn.
    --------------------------------------------------------------------------- */
 
-/* Metric tiles: fixed height and contained text, so a long label cannot push
-   its neighbour out of line or spill past the card. */
 [data-testid="stMetric"] {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 14px 16px;
-    overflow: hidden;
+    all: unset;
+    display: block;
 }
 
-[data-testid="stMetricLabel"] {
-    overflow: hidden;
-}
-
-[data-testid="stMetricLabel"] p {
-    font-size: 0.78rem;
-    letter-spacing: 0.04em;
+.ea-group {
+    margin: 26px 0 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    opacity: 0.65;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    opacity: 0.5;
 }
 
-[data-testid="stMetricValue"] {
-    font-size: 1.6rem;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.ea-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
 }
 
-/* Columns stretch to the tallest tile in the row so the grid stays square.
-   The column itself has to become a flex container: height:100% on the card
-   resolves to auto against a block parent, which left one card in the row
-   60px shorter than its neighbours. */
-[data-testid="stHorizontalBlock"] {
-    align-items: stretch;
-    gap: 12px;
+.ea-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
+    min-height: 104px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-sizing: border-box;
+    transition: border-color 220ms ease, transform 220ms ease;
 }
 
-/* Every tile holds the same two lines, a label and a value, so the card gets a
-   fixed height rather than being stretched to whatever Streamlit decides the
-   column should be. Stretching left one card in the row 60px short of its
-   neighbours, and depended on internals that are not ours to rely on. */
-[data-testid="stHorizontalBlock"] [data-testid="stMetric"] {
-    /* min and max together, because a plain height loses to the flex stretch
-       Streamlit applies to some columns and not others. Pinning both is what
-       finally made all eight tiles the same size. */
-    min-height: 92px !important;
-    max-height: 92px !important;
-    /* The column leaves 5px of slack and Streamlit distributes it unevenly
-       between tiles, so the card is anchored to the top of its column and its
-       own margins zeroed. */
-    align-self: flex-start;
-    margin: 0 !important;
+.ea-tile:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+}
+
+.ea-tile__icon {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    margin-top: 3px;
+    opacity: 0.72;
+}
+
+.ea-tile__body {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 2px;
+    gap: 3px;
+    min-width: 0;
 }
 
-/* The start gate. Centring is done with st.columns in the app; this only
-   handles the look and the fade. */
+.ea-tile__label {
+    font-size: 0.74rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    opacity: 0.62;
+    white-space: normal;
+    line-height: 1.3;
+}
+
+.ea-tile__value {
+    font-size: 1.7rem;
+    font-weight: 600;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.ea-tile__note {
+    font-size: 0.72rem;
+    opacity: 0.45;
+    line-height: 1.3;
+}
+
 .stButton > button[kind="primary"] {
     border-radius: 999px;
     padding: 0.6em 2.4em;
     font-weight: 600;
     letter-spacing: 0.02em;
-    transition: transform 220ms ease, opacity 220ms ease, box-shadow 220ms ease;
+    transition: transform 200ms ease, opacity 200ms ease, box-shadow 220ms ease;
 }
 
 .stButton > button[kind="primary"]:hover {
@@ -421,8 +431,8 @@
 }
 
 .stButton > button[kind="primary"]:active {
-    transform: scale(0.97);
-    opacity: 0.7;
+    transform: scale(0.94);
+    opacity: 0;
 }
 
 @keyframes ea-fade-in {
@@ -430,8 +440,7 @@
     to   { opacity: 1; transform: none; }
 }
 
-/* Content arrives rather than snapping in once the gate is passed. */
-[data-testid="stMetric"],
+.ea-grid,
 .stPlotlyChart,
 iframe {
     animation: ea-fade-in 420ms ease-out both;
@@ -444,18 +453,18 @@ iframe {
     margin: 1.2em 0;
 }
 
-/* The folium map is dropped in as a raw iframe, which has no styling of its
-   own and sat flush against the text above it. */
 iframe {
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    width: 100% !important;
     max-width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    [data-testid="stMetric"],
+    .ea-grid,
     .stPlotlyChart,
     iframe,
+    .ea-tile,
     .stButton > button[kind="primary"] {
         animation: none;
         transition: none;
