@@ -164,6 +164,7 @@ def fetch_ndvi(lat_query, lon_query):
     
     return ndvi
 
+@st.cache_data(ttl=3600)
 def fetch_industrial_sites_near_city(lat, lon, radius_km=50):
     url = "http://overpass-api.de/api/interpreter"
     
@@ -203,7 +204,6 @@ def fetch_industrial_sites_near_city(lat, lon, radius_km=50):
         print(f"Error Fetching Data: {response.status_code} - {response.text}")
         return []
 
-industrial_sites = fetch_industrial_sites_near_city(latitude, longitude)
 
 # Input to float
 try:
@@ -230,7 +230,14 @@ current_year = datetime.now().year
 
 temperature, humidity, wind_speed, min_temp, max_temp, rainfall = fetch_additional(latitude, longitude) # fetch weather
 ndvi = fetch_ndvi(latitude, longitude) # fetch NDVI based on lat/lon
-dist = fetch_industrial_sites_near_city(latitude, longitude) # fetch nearest industrial sites
+industrial_sites = fetch_industrial_sites_near_city(latitude, longitude)
+# The fetcher hands back (lat, lon) pairs, so turn them into real distances
+# before anything calls them kilometres.
+SEARCH_RADIUS_KM = 50
+dist = [geodesic((latitude, longitude), site).km for site in industrial_sites]
+# Overpass goes down, rate-limits, and sometimes genuinely finds nothing. Any
+# of those used to reach np.min([]) and take every section below here with it.
+nearest_industrial = min(dist) if dist else float(SEARCH_RADIUS_KM)
 if temperature is not None:
     st.sidebar.write("🌦️ Live Weather Information:")
     st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
@@ -245,7 +252,7 @@ if pop_density is not None:
     X['pop_density'] = pop_density
     X['street_density'] = street_density
     X['NDVI'] = ndvi
-    X['dist'] = np.min(dist)
+    X['dist'] = nearest_industrial
 
 # Extended Models
 models = {
@@ -413,7 +420,9 @@ if st.session_state.show_content:
             with col3:
                 st.metric("🍃 NDVI", ndvi, "%Index")
             with col4:
-                st.metric("🏭 Nearest Indust.", round(np.min(dist)), "km")
+                st.metric("🏭 Nearest Indust.",
+                          round(nearest_industrial),
+                          "km" if dist else f"none within {SEARCH_RADIUS_KM} km")
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("🌡️ Temperature", round(temperature), "°C")
@@ -451,7 +460,11 @@ if st.session_state.show_content:
                 time.sleep(1)
                 st.write("Success!")
                 time.sleep(1)
-        st.success(f"🔎\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t")
+            # This sat one level out, so it read `prediction` on the very first
+            # render, before the button had ever been pressed and the name
+            # existed. The NameError took every section below it down with it.
+            st.success(f"🔎\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t")
+
         st.title("Forecast Results")
 
         # Visualisation
