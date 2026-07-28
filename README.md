@@ -30,19 +30,35 @@ season spike from February to April and the monsoon dip around June fall out of
 the data on their own, which is a good sign the model is not just drawing a
 flat line through the mean.
 
+Months read as names rather than 1 to 12, the legend sits along the top so the
+plot keeps the full width, and the only labelled point is the prediction. A
+number on every point is noise.
+
 ### Weather and urban features
 
-![Population density, street density, NDVI and industrial distance](docs/screenshots/metrics.png)
+Eight tiles in two rows of four: population density, street density, NDVI
+greenness and distance to the nearest industrial site, then temperature, wind,
+humidity and rainfall. Those are the numbers the model actually eats, not
+decoration.
 
-The numbers the model actually eats. Population density, street density, NDVI
-greenness, and how far the nearest industrial site is. "None within 50 km" is a
-real answer rather than a failure: Overpass gets asked for industrial landuse
-inside a 50 km box, and sometimes there is genuinely nothing in it.
+`>50 km` on the industry tile is a real answer rather than a failure. Overpass
+gets asked for industrial landuse inside a 50 km box and sometimes there is
+genuinely nothing in it, so the tile says so instead of the page falling over.
+
+The units live in the value, not in the delta slot. Passing `"people/km2"` as
+`st.metric`'s third argument puts a green up arrow next to it, which reads as
+"population density improved" and means nothing at all.
 
 ### Geospatial heatmap
 
 ![Predicted PM2.5 heat layer over Bangkok](docs/screenshots/heatmap.png)
 
-Folium with a heat layer over the predicted grid. Hot core, cooler edges, and
-it lands on where the city actually is instead of the middle of the bounding
-box, which is the bug you get when the lat and lon go in the wrong order.
+Folium with a heat layer built from the city's predicted level, falling off
+from the centre the way an urban PM2.5 field actually does.
+
+This used to render as a solid square. The grid was feeding (lat, lon) pairs
+into a model trained on [month, yearly average], so the numbers coming back
+were not predictions of anything, and since latitude and longitude barely move
+across a 0.2 degree box they were all near identical. A rectangle of identical
+values shaded uniformly is a cube. The points are now laid out in rings with a
+Gaussian falloff, and the circular mask matters as much as the weighting.
