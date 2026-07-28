@@ -50,16 +50,25 @@ long labels, and its third argument is a delta, so passing `"people/km2"` there
 puts a green up arrow beside the number as though population density had just
 improved.
 
-### Geospatial heatmap
+### The map
 
-![Predicted PM2.5 heat layer over Bangkok](docs/screenshots/heatmap.png)
+![Predicted PM2.5 marker over Bangkok](docs/screenshots/map.png)
 
-Folium with a heat layer built from the city's predicted level, falling off
-from the centre the way an urban PM2.5 field actually does.
+One marker on the city, sized and coloured by the predicted value, because that
+is all the model can honestly support.
 
-This used to render as a solid square. The grid was feeding (lat, lon) pairs
-into a model trained on [month, yearly average], so the numbers coming back
-were not predictions of anything, and since latitude and longitude barely move
-across a 0.2 degree box they were all near identical. A rectangle of identical
-values shaded uniformly is a cube. The points are now laid out in rings with a
-Gaussian falloff, and the circular mask matters as much as the weighting.
+It started as a solid square. The grid was feeding (lat, lon) pairs into a
+model trained on [month, yearly average], so the values coming back were not
+predictions of anything, and since latitude and longitude barely move across a
+0.2 degree box they were all near identical.
+
+The proper fix was to feed the model something that genuinely varies per point.
+Distance to the nearest industrial site does, so the map now builds a real
+grid, computes that distance for every cell, and asks the model. Then it checks
+whether the answers actually differ. They do not: training is one row per month
+for a single city, which leaves distance constant across all twelve rows, so
+the model never learns anything from it and returns the same number everywhere.
+
+So the app draws the marker and says why, rather than shading a flat field that
+implies detail it does not have. If the surface ever does vary, the heat layer
+appears on its own.

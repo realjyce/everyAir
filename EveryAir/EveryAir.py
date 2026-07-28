@@ -18,7 +18,6 @@ from sklearn.preprocessing import StandardScaler
 from folium.plugins import MarkerCluster
 from folium.plugins import HeatMap
 import geopandas as gpd
-from geopy.distance import geodesic
 
 # Import Other ML Libraries
 from sklearn.linear_model import LinearRegression
@@ -164,45 +163,49 @@ def fetch_ndvi(lat_query, lon_query):
     
     return ndvi
 
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+OVERPASS_HEADERS = {"User-Agent": "everyAir/1.0 (https://github.com/realjyce/everyAir)"}
+
+
 @st.cache_data(ttl=3600)
 def fetch_industrial_sites_near_city(lat, lon, radius_km=50):
-    url = "http://overpass-api.de/api/interpreter"
-    
     delta = radius_km / 111.0
-    
-    # bbox (Bounding Box)
     bbox = f"{lat - delta},{lon - delta},{lat + delta},{lon + delta}"
-    
     query = f"""
-    [out:json][timeout:1800];
+    [out:json][timeout:60];
     (
-      node["landuse"="industrial"]({bbox});
       way["landuse"="industrial"]({bbox});
       relation["landuse"="industrial"]({bbox});
+      node["man_made"="works"]({bbox});
+      way["man_made"="works"]({bbox});
     );
-    out body;
-    >;
-    out skel qt;
+    out center;
     """
-    
-    # Send query to Overpass API
-    response = requests.get(url, params={'data': query})
-    
-    # Check the response status
-    if response.status_code == 200:
-        data = response.json()
-        if 'elements' in data:
-            industrial_sites = []
-            for element in data['elements']:
-                if 'lat' in element and 'lon' in element:
-                    industrial_sites.append((element['lat'], element['lon']))
-            return industrial_sites
-        else:
-            print(f"No 'elements' found in response: {data}")
-            return []
-    else:
-        print(f"Error Fetching Data: {response.status_code} - {response.text}")
-        return []
+    try:
+        response = requests.get(OVERPASS_URL, params={"data": query},
+                                headers=OVERPASS_HEADERS, timeout=60)
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.RequestException, ValueError):
+        return None
+
+    sites = []
+    for element in payload.get("elements", []):
+        if "lat" in element and "lon" in element:
+            sites.append((element["lat"], element["lon"]))
+        elif "center" in element:
+            sites.append((element["center"]["lat"], element["center"]["lon"]))
+    return sites
+
+
+def km_to_nearest_site(lats, lons, sites):
+    site = np.radians(np.asarray(sites, dtype=float))
+    la = np.radians(np.asarray(lats, dtype=float))[:, None]
+    lo = np.radians(np.asarray(lons, dtype=float))[:, None]
+    dlat = site[:, 0][None, :] - la
+    dlon = site[:, 1][None, :] - lo
+    a = np.sin(dlat / 2) ** 2 + np.cos(la) * np.cos(site[:, 0][None, :]) * np.sin(dlon / 2) ** 2
+    return (6371.0 * 2 * np.arcsin(np.sqrt(a))).min(axis=1)
 
 
 # Input to float
@@ -222,7 +225,6 @@ if 'Temperature' in data.columns and 'Humidity' in data.columns:
 y = data['PM2.5']
 
 # Splitting | Train-test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Current Date
 current_month = datetime.now().month
@@ -230,13 +232,12 @@ current_year = datetime.now().year
 
 temperature, humidity, wind_speed, min_temp, max_temp, rainfall = fetch_additional(latitude, longitude) # fetch weather
 ndvi = fetch_ndvi(latitude, longitude) # fetch NDVI based on lat/lon
-industrial_sites = fetch_industrial_sites_near_city(latitude, longitude)
-# The fetcher hands back (lat, lon) pairs, so turn them into real distances
-# before anything calls them kilometres.
 SEARCH_RADIUS_KM = 50
-dist = [geodesic((latitude, longitude), site).km for site in industrial_sites]
-# Overpass goes down, rate-limits, and sometimes genuinely finds nothing. Any
-# of those used to reach np.min([]) and take every section below here with it.
+industrial_sites = fetch_industrial_sites_near_city(latitude, longitude)
+industry_lookup_failed = industrial_sites is None
+industrial_sites = industrial_sites or []
+dist = (km_to_nearest_site([latitude], [longitude], industrial_sites).tolist()
+        if industrial_sites else [])
 nearest_industrial = min(dist) if dist else float(SEARCH_RADIUS_KM)
 if temperature is not None:
     st.sidebar.write("🌦️ Live Weather Information:")
@@ -253,6 +254,16 @@ if pop_density is not None:
     X['street_density'] = street_density
     X['NDVI'] = ndvi
     X['dist'] = nearest_industrial
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+def feature_row(month_value, yearly_value=None):
+    row = {c: X[c].iloc[0] for c in X.columns}
+    row["Month"] = month_value
+    if yearly_value is not None:
+        row["2023"] = yearly_value
+    return pd.DataFrame([row])[X.columns]
+
 
 # Extended Models
 models = {
@@ -353,7 +364,7 @@ if st.session_state.show_content:
         fig.update_layout(
             height=340,
             template="plotly_dark",
-            margin=dict(l=30, r=30, t=70, b=10),
+            margin=dict(l=0, r=0, t=64, b=8),
             paper_bgcolor="rgba(0,0,0,0)",
         )
 
@@ -370,44 +381,60 @@ if st.session_state.show_content:
             icon=folium.Icon(color='navy', icon='info-sign')
         ).add_to(m)
 
-        # This used to feed (lat, lon) pairs straight into a model trained on
-        # [Month, yearly average, ...]. The numbers that came back were not
-        # predictions of anything, and because latitude and longitude barely
-        # move across a 0.2 degree box they were all nearly identical, which is
-        # why the layer rendered as a solid square.
-        #
-        # The model has one value for the city, so that is what the map shows:
-        # the predicted level falling off from the centre, which is how an urban
-        # PM2.5 field actually behaves. The circular mask matters as much as the
-        # weighting; a filled rectangle of points is a cube no matter how it is
-        # shaded.
-        peak = float(predicted_pm2_5) if predicted_pm2_5 is not None else float(data['PM2.5'].mean())
-        span, rings, per_ring = 0.28, 9, 26
+        def draw_single_marker(note):
+            folium.CircleMarker(
+                location=[latitude, longitude],
+                radius=30, color="#d7191c", weight=1,
+                fill=True, fill_color="#d7191c", fill_opacity=0.28,
+            ).add_to(m)
+            folium_static(m, width=1120, height=520)
+            st.caption(note)
 
-        heatmap_data = [[latitude, longitude, peak]]
-        for ring in range(1, rings + 1):
-            frac = ring / rings
-            radius = span * frac
-            # Gaussian falloff, so the edge fades out instead of stopping dead.
-            weight = peak * float(np.exp(-2.2 * frac ** 2))
-            for step in range(per_ring):
-                angle = 2 * np.pi * step / per_ring
-                heatmap_data.append([
-                    latitude + radius * float(np.cos(angle)),
-                    longitude + radius * float(np.sin(angle)) / max(0.2, float(np.cos(np.radians(latitude)))),
-                    weight,
-                ])
+        if "dist" not in X.columns or not industrial_sites:
+            draw_single_marker(
+                "The industrial site lookup failed, so the map shows the single city "
+                "prediction rather than a surface."
+                if industry_lookup_failed else
+                "No industrial sites mapped nearby, so nothing varies the prediction "
+                "across the map. One value for the whole city."
+            )
+            return
+
+        span, steps = 0.4, 28
+        mesh_lat, mesh_lon = np.meshgrid(
+            np.linspace(latitude - span, latitude + span, steps),
+            np.linspace(longitude - span, longitude + span, steps),
+        )
+        flat_lat, flat_lon = mesh_lat.ravel(), mesh_lon.ravel()
+
+        frame = pd.DataFrame([{c: X[c].iloc[0] for c in X.columns} for _ in range(len(flat_lat))])
+        frame["Month"] = current_month
+        frame["dist"] = km_to_nearest_site(flat_lat, flat_lon, industrial_sites)
+        values = best_model_instance.predict(frame[X.columns])
+        spread = float(values.max()) - float(values.min())
+
+        if spread < 0.5:
+            draw_single_marker(
+                f"Distance to industry ranges {frame['dist'].min():.0f} to "
+                f"{frame['dist'].max():.0f} km across this area, but the model returns the "
+                f"same value throughout, so there is no surface to draw. Training uses one "
+                f"row per month for a single city, which leaves distance constant and gives "
+                f"the model nothing to learn from."
+            )
+            return
 
         HeatMap(
-            heatmap_data,
-            radius=34,
-            blur=28,
-            min_opacity=0.25,
-            max_val=max(peak, 1.0),
-            gradient={0.0: '#2c7bb6', 0.35: '#abd9e9', 0.55: '#ffffbf', 0.75: '#fdae61', 1.0: '#d7191c'},
+            [[float(flat_lat[i]), float(flat_lon[i]), float(values[i])] for i in range(len(values))],
+            radius=30, blur=24, min_opacity=0.2,
+            max_val=float(values.max()),
+            gradient={0.0: "#2c7bb6", 0.4: "#abd9e9", 0.6: "#ffffbf",
+                      0.8: "#fdae61", 1.0: "#d7191c"},
         ).add_to(m)
-
         folium_static(m, width=1120, height=520)
+        st.caption(
+            f"Predicted {values.min():.1f} to {values.max():.1f} µg/m³ across the area, "
+            f"varying with distance to industry."
+        )
 
 
     def heatmap_show(pm2_5_grid, lat_grid, lon_grid):
@@ -425,7 +452,7 @@ if st.session_state.show_content:
 
     # Predict PM2.5
     if real_time_pm2_5 is not None:
-        input_features = [[current_month, current_year]]
+        input_features = feature_row(current_month)
         predicted_pm2_5 = best_model_instance.predict(input_features)[0]
 
         # Two rows of four rather than 4/3/3, which never lined up. The unit
@@ -502,8 +529,8 @@ if st.session_state.show_content:
             with st.spinner(text="Predicting..."):
                 time.sleep(2)
             month_numeric = month_map[month]
-            input_features = [[month_numeric, yearly_avg]]
-            prediction = best_model_instance.predict([[month_numeric, yearly_avg]])
+            input_features = feature_row(month_numeric, yearly_avg)
+            prediction = best_model_instance.predict(input_features)
             with st.status("Predicting Data..."):
                 st.write("Fetching trained data...")
                 time.sleep(2)
@@ -537,21 +564,21 @@ if st.session_state.show_content:
         # Recessive grid, no vertical rules, legend along the top so the plot
         # keeps the full width instead of losing a column to a legend box.
         fig.update_layout(
-            title=dict(text=f"PM2.5 through the year in {city}", x=0.0, xanchor='left'),
+            title=dict(text=f"PM2.5 through the year in {city}", x=0, xanchor='left', y=0.96),
             xaxis_title="Month",
             yaxis_title="PM2.5 (µg/m³)",
             template="plotly_dark",
             height=420,
-            margin=dict(l=30, r=30, t=80, b=40),
+            margin=dict(l=0, r=12, t=76, b=44),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='left', x=0),
             hovermode='x unified',
         )
-        fig.update_xaxes(showgrid=False, zeroline=False,
+        fig.update_xaxes(automargin=True, showgrid=False, zeroline=False,
                          tickmode='array', tickvals=list(range(1, 13)),
                          ticktext=list(month_map.keys()))
-        fig.update_yaxes(gridcolor='rgba(255,255,255,0.08)', zeroline=False)
+        fig.update_yaxes(automargin=True, gridcolor='rgba(255,255,255,0.08)', zeroline=False)
 
         st.plotly_chart(fig, use_container_width=True)
         show_city_on_map(city, latitude, longitude, input_features, best_model_instance,
