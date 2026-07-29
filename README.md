@@ -15,31 +15,61 @@ Shots of the thing actually running, because a folder of `.py` files proves noth
 
 ![Real-time PM2.5 gauge for Bangkok](docs/screenshots/gauge.png)
 
-Current reading off OpenWeather, dropped on a 0 to 500 scale. The colour bands
-are the usual AQI breakpoints, so you can read it without reading the number.
-Bangkok on a good afternoon sits near the floor, which is less exciting than it
-sounds.
+Current reading in µg/m³, banded on US EPA PM2.5 breakpoints, with the WHO
+24-hour guideline of 15 µg/m³ marked as a white line.
 
-### Forecast against history
+The bands used to be 0-50 green, 50-100 yellow and so on. Those are AQI index
+numbers, and the gauge was showing µg/m³. Two different scales on one dial: it
+coloured 40 µg/m³ green when that is already unhealthy for anyone with asthma.
 
-![PM2.5 forecast versus historical data](docs/screenshots/forecast.png)
+The live value comes from OpenWeather, which serves CAMS model output rather
+than a ground station. Worth knowing before comparing it to a local monitor.
 
-Blue line is the twelve month PM2.5 history straight out of `Asia_Dataset.csv`.
-Red dot is what the Random Forest thinks a given month looks like. The dry
-season spike from February to April and the monsoon dip around June fall out of
-the data on their own, which is a good sign the model is not just drawing a
-flat line through the mean.
+### Seasonal model
 
-Months read as names rather than 1 to 12, the legend sits along the top so the
-plot keeps the full width, and the only labelled point is the prediction. A
-number on every point is noise.
+![PM2.5 through the year](docs/screenshots/forecast.png)
+
+Blue line is the twelve month history for the selected city. Red dot is the
+model's estimate for the current month, and the prediction panel gives an 80%
+interval taken from the spread across the forest's trees.
+
+The model predicts the *shape* of a city's year, not its level. It learns a
+monthly multiplier from 25,510 city-months across 2,106 cities, then scales that
+by the city's own typical level. Tested on whole cities held out of training it
+lands at 5.1 µg/m³ mean absolute error, against 9.5 for assuming every month
+equals the annual average. About 47% better, on cities it has never seen.
+
+Three things it does not do, said plainly.
+
+It is climatology, not weather. It answers "what does March usually look like
+here", not "what will next Tuesday bring". There is no lead time and no initial
+condition anywhere in it.
+
+It used to train on twelve rows: one city, one row per month, then a random 20%
+split, which trains on December to predict June. The annual mean was also an
+input feature, and that is the mean of the twelve values it was predicting.
+
+Static city features turned out to be weak. Pooling cities and predicting level
+directly from population density scored 21.9 MAE, worse than plain monthly
+climatology at 17.6. Population describes emission potential, not what the air is
+doing. That result is why the model predicts shape and takes level as given.
+
+Missing, in rough order of how much they would help: mixing height, which is the
+strongest single control on surface concentration, precipitation for wet
+deposition, wind vector for ventilation and transport, and upwind active fire
+counts. In Southeast Asia the February to April peak is largely agricultural
+burning, much of it across a border.
 
 ### Weather and urban features
 
 Eight tiles, each with an icon, a label, the number, and what the number is in.
 Population density, street density, NDVI greenness and distance to the nearest
-industrial site, then temperature, wind, humidity and rainfall. Those are what
-the model eats, not decoration.
+industrial site, then temperature, wind, humidity and rainfall.
+
+These are context, not model inputs. The seasonal model runs on month and city
+level alone, because pooling tested worse than climatology when it tried to
+predict level from these. NDVI is also on a 1 degree grid, roughly 111 km, so it
+describes a region rather than a city.
 
 `50+ km` on the industry tile is a real answer rather than a failure. Overpass
 gets asked for industrial landuse inside a 50 km box and sometimes there is

@@ -12,7 +12,7 @@ import numpy as np
 import plotly.graph_objects as go
 import folium
 from streamlit_folium import folium_static
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupKFold
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import StandardScaler
 from folium.plugins import MarkerCluster
@@ -215,23 +215,84 @@ try:
 except ValueError:
     st.error("Latitude and Longitude are NaN.")
 
-# Features and target
-X = data[['Month', '2023']].copy()
-# New Humidity and temperature feature
-if 'Temperature' in data.columns and 'Humidity' in data.columns:
-    X['Temperature'] = data['Temperature']
-    X['Humidity'] = data['Humidity']
+MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+SEASON_FEATURES = ['month_sin', 'month_cos', 'country_code', 'pop_density']
 
-y = data['PM2.5']
 
-# Splitting | Train-test
+@st.cache_resource(show_spinner=False)
+def train_seasonal_model():
+    pop_avg = pop_df.groupby('City', as_index=False)['pop_density'].mean()
+    panel = df.melt(id_vars=['Rank', 'City', 'Country', '2023'], value_vars=MONTH_NAMES,
+                    var_name='MonthName', value_name='PM2.5')
+    panel['Month'] = panel['MonthName'].map({m: i + 1 for i, m in enumerate(MONTH_NAMES)})
+    panel['PM2.5'] = pd.to_numeric(panel['PM2.5'], errors='coerce')
+    panel = panel.dropna(subset=['PM2.5']).merge(pop_avg, on='City', how='left')
+    panel['pop_density'] = panel['pop_density'].fillna(panel['pop_density'].median())
+
+    total = panel.groupby('City')['PM2.5'].transform('sum')
+    count = panel.groupby('City')['PM2.5'].transform('count')
+    panel['anchor'] = (total - panel['PM2.5']) / (count - 1)
+    panel = panel[(panel['anchor'] > 0) & (count > 6)].copy()
+    panel['ratio'] = panel['PM2.5'] / panel['anchor']
+    panel['month_sin'] = np.sin(2 * np.pi * panel['Month'] / 12)
+    panel['month_cos'] = np.cos(2 * np.pi * panel['Month'] / 12)
+    countries = {c: i for i, c in enumerate(sorted(panel['Country'].astype(str).unique()))}
+    panel['country_code'] = panel['Country'].astype(str).map(countries)
+
+    features, target, groups = panel[SEASON_FEATURES], panel['ratio'], panel['City']
+    model_errors, flat_errors = [], []
+    for train_idx, test_idx in GroupKFold(n_splits=5).split(features, target, groups):
+        fold = RandomForestRegressor(n_estimators=200, random_state=42,
+                                     min_samples_leaf=3, n_jobs=-1)
+        fold.fit(features.iloc[train_idx], target.iloc[train_idx])
+        predicted = fold.predict(features.iloc[test_idx]) * panel.iloc[test_idx]['anchor'].values
+        model_errors.append(mean_absolute_error(panel.iloc[test_idx]['PM2.5'], predicted))
+        flat_errors.append(mean_absolute_error(panel.iloc[test_idx]['PM2.5'],
+                                               panel.iloc[test_idx]['anchor']))
+
+    model = RandomForestRegressor(n_estimators=300, random_state=42,
+                                  min_samples_leaf=3, n_jobs=-1)
+    model.fit(features, target)
+    return model, countries, {
+        'model_mae': float(np.mean(model_errors)),
+        'flat_mae': float(np.mean(flat_errors)),
+        'rows': int(len(panel)),
+        'cities': int(panel['City'].nunique()),
+    }
+
+
+season_model, country_codes, model_report = train_seasonal_model()
+
+city_months = data.sort_values('Month')
+city_anchor = float(city_months['PM2.5'].mean())
+city_country = str(df.loc[df['City'] == city, 'Country'].iloc[0]) if (df['City'] == city).any() else ''
+
+
+def season_features(month_value, anchor_pop):
+    return pd.DataFrame([{
+        'month_sin': np.sin(2 * np.pi * month_value / 12),
+        'month_cos': np.cos(2 * np.pi * month_value / 12),
+        'country_code': country_codes.get(city_country, -1),
+        'pop_density': anchor_pop,
+    }])[SEASON_FEATURES]
+
+
+def predict_month(month_value, anchor=None, anchor_pop=None):
+    anchor = city_anchor if anchor is None else anchor
+    row = season_features(month_value, anchor_pop if anchor_pop is not None else 0.0)
+    per_tree = np.array([t.predict(row)[0] for t in season_model.estimators_])
+    centre = float(per_tree.mean()) * anchor
+    spread = float(per_tree.std()) * anchor
+    return centre, max(centre - 1.28 * spread, 0.0), centre + 1.28 * spread
+
 
 # Current Date
 current_month = datetime.now().month
 current_year = datetime.now().year
 
-temperature, humidity, wind_speed, min_temp, max_temp, rainfall = fetch_additional(latitude, longitude) # fetch weather
-ndvi = fetch_ndvi(latitude, longitude) # fetch NDVI based on lat/lon
+temperature, humidity, wind_speed, min_temp, max_temp, rainfall = fetch_additional(latitude, longitude)
+ndvi = fetch_ndvi(latitude, longitude)
 SEARCH_RADIUS_KM = 50
 industrial_sites = fetch_industrial_sites_near_city(latitude, longitude)
 industry_lookup_failed = industrial_sites is None
@@ -240,48 +301,14 @@ dist = (km_to_nearest_site([latitude], [longitude], industrial_sites).tolist()
         if industrial_sites else [])
 nearest_industrial = min(dist) if dist else float(SEARCH_RADIUS_KM)
 if temperature is not None:
-    st.sidebar.write("🌦️ Live Weather Information:")
-    st.sidebar.code(f"🌡️ Temperature: {temperature:.0f}°C")
-    st.sidebar.code(f"💧 Humidity: {humidity} %")
-    st.sidebar.code(f"☔ Rainfall: {rainfall} mm")
+    st.sidebar.write("Live weather")
+    st.sidebar.code(f"Temperature: {temperature:.0f}°C")
+    st.sidebar.code(f"Humidity: {humidity} %")
+    st.sidebar.code(f"Rainfall: {rainfall} mm")
 else:
-    st.sidebar.write("Data Fetch Failed:\n")
-    st.sidebar.write("Please try again later (￣﹏￣；)")
+    st.sidebar.write("Weather fetch failed, try again later.")
 
 pop_density, street_density = fetch_urban(df_merged, city)
-if pop_density is not None:
-    X['pop_density'] = pop_density
-    X['street_density'] = street_density
-    X['NDVI'] = ndvi
-    X['dist'] = nearest_industrial
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-def feature_row(month_value, yearly_value=None):
-    row = {c: X[c].iloc[0] for c in X.columns}
-    row["Month"] = month_value
-    if yearly_value is not None:
-        row["2023"] = yearly_value
-    return pd.DataFrame([row])[X.columns]
-
-
-# Extended Models
-models = {
-    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
-    "Linear Regression": LinearRegression(),
-    "Gradient Boosting": GradientBoostingRegressor(random_state=42),
-    "XGBoost": XGBRegressor(random_state=42),
-}
-
-model_scores = {}
-for model_type, model in models.items():
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    mae = mean_absolute_error(y_test, y_pred)
-    model_scores[model_type] = mae
-
-best_model = min(model_scores, key=model_scores.get)
-best_model_instance = models[best_model]
 
 # Real-Time Data
 def fetch_real_time_pm2_5(lat, lon):
@@ -348,17 +375,22 @@ if st.session_state.show_content:
         fig.add_trace(go.Indicator(
             mode="gauge+number",
             value=pm2_5_value,
-            title={"text": f"Real-Time PM2.5 Level for {city}"},
+            title={"text": f"PM2.5 right now in {city} (µg/m³)"},
             gauge={
-                "axis": {"range": [0, 500]},
+                "axis": {"range": [0, 250], "tickvals": [0, 9, 35.4, 55.4, 125.4, 250]},
                 "steps": [
-                    {"range": [0, 50], "color": "#5bfc6b"},    
-                    {"range": [50, 100], "color": "#dcfc5b"},
-                    {"range": [100, 150], "color": "#fc965b"},
-                    {"range": [150, 200], "color": "#ff4b33"},  
-                    {"range": [200, 500], "color": "#9e1010"}
+                    {"range": [0, 9], "color": "#5bfc6b"},
+                    {"range": [9, 35.4], "color": "#dcfc5b"},
+                    {"range": [35.4, 55.4], "color": "#fc965b"},
+                    {"range": [55.4, 125.4], "color": "#ff4b33"},
+                    {"range": [125.4, 250], "color": "#9e1010"}
                 ],
-                "bar": {"color": "black"}
+                "threshold": {
+                    "line": {"color": "#ffffff", "width": 3},
+                    "thickness": 0.85,
+                    "value": 15,
+                },
+                "bar": {"color": "#111111"}
             }
         ))
         fig.update_layout(
@@ -369,8 +401,13 @@ if st.session_state.show_content:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+        st.caption(
+            "Bands are US EPA PM2.5 breakpoints in µg/m³. The white line marks the "
+            "WHO 24-hour guideline of 15 µg/m³. Live value is CAMS model output from "
+            "OpenWeather, not a ground station."
+        )
 
-    def show_city_on_map(city, latitude, longitude, input_features, best_model_instance, real_time_pm2_5=None, predicted_pm2_5=None):
+    def show_city_on_map(city, latitude, longitude, real_time_pm2_5=None, predicted_pm2_5=None):
         st.subheader(f"Where it settles in {city}")
 
         m = folium.Map(location=[latitude, longitude], zoom_start=9)
@@ -390,50 +427,12 @@ if st.session_state.show_content:
             folium_static(m, width=1120, height=520)
             st.caption(note)
 
-        if "dist" not in X.columns or not industrial_sites:
-            draw_single_marker(
-                "The industrial site lookup failed, so the map shows the single city "
-                "prediction rather than a surface."
-                if industry_lookup_failed else
-                "No industrial sites mapped nearby, so nothing varies the prediction "
-                "across the map. One value for the whole city."
-            )
-            return
-
-        span, steps = 0.4, 28
-        mesh_lat, mesh_lon = np.meshgrid(
-            np.linspace(latitude - span, latitude + span, steps),
-            np.linspace(longitude - span, longitude + span, steps),
-        )
-        flat_lat, flat_lon = mesh_lat.ravel(), mesh_lon.ravel()
-
-        frame = pd.DataFrame([{c: X[c].iloc[0] for c in X.columns} for _ in range(len(flat_lat))])
-        frame["Month"] = current_month
-        frame["dist"] = km_to_nearest_site(flat_lat, flat_lon, industrial_sites)
-        values = best_model_instance.predict(frame[X.columns])
-        spread = float(values.max()) - float(values.min())
-
-        if spread < 0.5:
-            draw_single_marker(
-                f"Distance to industry ranges {frame['dist'].min():.0f} to "
-                f"{frame['dist'].max():.0f} km across this area, but the model returns the "
-                f"same value throughout, so there is no surface to draw. Training uses one "
-                f"row per month for a single city, which leaves distance constant and gives "
-                f"the model nothing to learn from."
-            )
-            return
-
-        HeatMap(
-            [[float(flat_lat[i]), float(flat_lon[i]), float(values[i])] for i in range(len(values))],
-            radius=30, blur=24, min_opacity=0.2,
-            max_val=float(values.max()),
-            gradient={0.0: "#2c7bb6", 0.4: "#abd9e9", 0.6: "#ffffbf",
-                      0.8: "#fdae61", 1.0: "#d7191c"},
-        ).add_to(m)
-        folium_static(m, width=1120, height=520)
-        st.caption(
-            f"Predicted {values.min():.1f} to {values.max():.1f} µg/m³ across the area, "
-            f"varying with distance to industry."
+        draw_single_marker(
+            f"{predicted_pm2_5:.1f} µg/m³ predicted for {city} this month. The model "
+            f"works at city level, so there is one value for the whole area rather than "
+            f"a surface."
+            if predicted_pm2_5 is not None else
+            "No prediction available for this city."
         )
 
 
@@ -452,8 +451,7 @@ if st.session_state.show_content:
 
     # Predict PM2.5
     if real_time_pm2_5 is not None:
-        input_features = feature_row(current_month)
-        predicted_pm2_5 = best_model_instance.predict(input_features)[0]
+        predicted_pm2_5, predicted_low, predicted_high = predict_month(current_month)
 
         # Two rows of four rather than 4/3/3, which never lined up. The unit
         # belongs in the label: st.metric's third argument is a delta, so
@@ -517,20 +515,21 @@ if st.session_state.show_content:
 
         # Yearly avg prediction input
         st.subheader("Predict a month")
-        _city_avg = float(data['2023'].iloc[0]) if len(data) else 100.0
+        _city_avg = city_anchor
         pc1, pc2 = st.columns(2)
         with pc1:
             month = st.selectbox("Month", list(month_map.keys()))
         with pc2:
             yearly_avg = st.number_input(
-                "Yearly average (µg/m³)", value=round(_city_avg, 1), step=1.0)
+                "Typical yearly level (µg/m³)", value=round(_city_avg, 1), step=1.0,
+                help="The model predicts the seasonal shape and scales it by this level.")
         # Prediction
         if st.button("Predict"):
             with st.spinner(text="Predicting..."):
                 time.sleep(2)
             month_numeric = month_map[month]
-            input_features = feature_row(month_numeric, yearly_avg)
-            prediction = best_model_instance.predict(input_features)
+            prediction, prediction_low, prediction_high = predict_month(
+                month_numeric, anchor=yearly_avg)
             with st.status("Predicting Data..."):
                 st.write("Fetching trained data...")
                 time.sleep(2)
@@ -544,6 +543,14 @@ if st.session_state.show_content:
             st.success(f"🔎\tPredicted PM2.5 level for {month}: **{prediction[0]:.2f}**\t")
 
         st.subheader("Forecast")
+        st.caption(
+            f"Seasonal shape learned from {model_report['rows']:,} city-months across "
+            f"{model_report['cities']:,} cities. Tested on cities held out of training: "
+            f"{model_report['model_mae']:.1f} µg/m³ mean absolute error, against "
+            f"{model_report['flat_mae']:.1f} for assuming every month equals the city's "
+            f"annual average. This is climatology, not a weather forecast: it says what "
+            f"a month typically looks like, not what next week will bring."
+        )
 
         # Visualisation
         fig = go.Figure()
@@ -581,5 +588,5 @@ if st.session_state.show_content:
         fig.update_yaxes(automargin=True, gridcolor='rgba(255,255,255,0.08)', zeroline=False)
 
         st.plotly_chart(fig, use_container_width=True)
-        show_city_on_map(city, latitude, longitude, input_features, best_model_instance,
+        show_city_on_map(city, latitude, longitude,
                          real_time_pm2_5=real_time_pm2_5, predicted_pm2_5=predicted_pm2_5)   
