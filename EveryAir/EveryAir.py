@@ -21,7 +21,7 @@ import geopandas as gpd
 
 # Import Other ML Libraries
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor, HistGradientBoostingRegressor
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 
@@ -217,74 +217,107 @@ except ValueError:
 
 MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-SEASON_FEATURES = ['month_sin', 'month_cos', 'country_code', 'pop_density']
+SEASON_FEATURES = ['month_sin', 'month_cos', 'log_anchor', 'country_clim', 'global_clim']
+
+
+def _seasonal_panel():
+    pooled = df.melt(id_vars=['Rank', 'City', 'Country', '2023'], value_vars=MONTH_NAMES,
+                     var_name='MonthName', value_name='PM2.5')
+    pooled['Month'] = pooled['MonthName'].map({m: i + 1 for i, m in enumerate(MONTH_NAMES)})
+    pooled['PM2.5'] = pd.to_numeric(pooled['PM2.5'], errors='coerce')
+    pooled = pooled.dropna(subset=['PM2.5'])
+
+    total = pooled.groupby('City')['PM2.5'].transform('sum')
+    count = pooled.groupby('City')['PM2.5'].transform('count')
+    pooled['anchor'] = (total - pooled['PM2.5']) / (count - 1)
+    pooled = pooled[(pooled['anchor'] > 0) & (count > 6)].reset_index(drop=True)
+
+    pooled['ratio'] = pooled['PM2.5'] / pooled['anchor']
+    pooled['month_sin'] = np.sin(2 * np.pi * pooled['Month'] / 12)
+    pooled['month_cos'] = np.cos(2 * np.pi * pooled['Month'] / 12)
+    pooled['log_anchor'] = np.log1p(pooled['anchor'])
+    return pooled
+
+
+def _attach_climatology(frame, country_table, global_table):
+    frame = frame.copy()
+    frame['country_clim'] = frame.set_index(['Country', 'Month']).index.map(country_table)
+    frame['global_clim'] = frame['Month'].map(global_table)
+    frame['country_clim'] = frame['country_clim'].fillna(frame['global_clim'])
+    return frame
+
+
+def _fit_quantiles(features, log_ratio):
+    centre = HistGradientBoostingRegressor(
+        random_state=42, max_iter=600, learning_rate=0.04, max_leaf_nodes=63)
+    lower = HistGradientBoostingRegressor(
+        random_state=42, loss='quantile', quantile=0.1, max_iter=400, learning_rate=0.05)
+    upper = HistGradientBoostingRegressor(
+        random_state=42, loss='quantile', quantile=0.9, max_iter=400, learning_rate=0.05)
+    for model in (centre, lower, upper):
+        model.fit(features, log_ratio)
+    return centre, lower, upper
 
 
 @st.cache_resource(show_spinner=False)
 def train_seasonal_model():
-    pop_avg = pop_df.groupby('City', as_index=False)['pop_density'].mean()
-    panel = df.melt(id_vars=['Rank', 'City', 'Country', '2023'], value_vars=MONTH_NAMES,
-                    var_name='MonthName', value_name='PM2.5')
-    panel['Month'] = panel['MonthName'].map({m: i + 1 for i, m in enumerate(MONTH_NAMES)})
-    panel['PM2.5'] = pd.to_numeric(panel['PM2.5'], errors='coerce')
-    panel = panel.dropna(subset=['PM2.5']).merge(pop_avg, on='City', how='left')
-    panel['pop_density'] = panel['pop_density'].fillna(panel['pop_density'].median())
+    panel = _seasonal_panel()
 
-    total = panel.groupby('City')['PM2.5'].transform('sum')
-    count = panel.groupby('City')['PM2.5'].transform('count')
-    panel['anchor'] = (total - panel['PM2.5']) / (count - 1)
-    panel = panel[(panel['anchor'] > 0) & (count > 6)].copy()
-    panel['ratio'] = panel['PM2.5'] / panel['anchor']
-    panel['month_sin'] = np.sin(2 * np.pi * panel['Month'] / 12)
-    panel['month_cos'] = np.cos(2 * np.pi * panel['Month'] / 12)
-    countries = {c: i for i, c in enumerate(sorted(panel['Country'].astype(str).unique()))}
-    panel['country_code'] = panel['Country'].astype(str).map(countries)
+    fold_mae, flat_mae, covered = [], [], []
+    for train_idx, test_idx in GroupKFold(n_splits=5).split(panel, panel['ratio'], panel['City']):
+        train, test = panel.iloc[train_idx], panel.iloc[test_idx]
+        country_table = train.groupby(['Country', 'Month'])['ratio'].mean()
+        global_table = train.groupby('Month')['ratio'].mean()
+        train_f = _attach_climatology(train, country_table, global_table)
+        test_f = _attach_climatology(test, country_table, global_table)
 
-    features, target, groups = panel[SEASON_FEATURES], panel['ratio'], panel['City']
-    model_errors, flat_errors = [], []
-    for train_idx, test_idx in GroupKFold(n_splits=5).split(features, target, groups):
-        fold = RandomForestRegressor(n_estimators=200, random_state=42,
-                                     min_samples_leaf=3, n_jobs=-1)
-        fold.fit(features.iloc[train_idx], target.iloc[train_idx])
-        predicted = fold.predict(features.iloc[test_idx]) * panel.iloc[test_idx]['anchor'].values
-        model_errors.append(mean_absolute_error(panel.iloc[test_idx]['PM2.5'], predicted))
-        flat_errors.append(mean_absolute_error(panel.iloc[test_idx]['PM2.5'],
-                                               panel.iloc[test_idx]['anchor']))
+        centre, lower, upper = _fit_quantiles(
+            train_f[SEASON_FEATURES], np.log(train_f['ratio'].clip(lower=1e-3)))
+        anchors = test_f['anchor'].values
+        predicted = np.exp(centre.predict(test_f[SEASON_FEATURES])) * anchors
+        low = np.exp(lower.predict(test_f[SEASON_FEATURES])) * anchors
+        high = np.exp(upper.predict(test_f[SEASON_FEATURES])) * anchors
+        truth = test_f['PM2.5'].values
 
-    model = RandomForestRegressor(n_estimators=300, random_state=42,
-                                  min_samples_leaf=3, n_jobs=-1)
-    model.fit(features, target)
-    return model, countries, {
-        'model_mae': float(np.mean(model_errors)),
-        'flat_mae': float(np.mean(flat_errors)),
+        fold_mae.append(mean_absolute_error(truth, predicted))
+        flat_mae.append(mean_absolute_error(truth, anchors))
+        covered.append(float(np.mean((truth >= low) & (truth <= high))))
+
+    country_table = panel.groupby(['Country', 'Month'])['ratio'].mean()
+    global_table = panel.groupby('Month')['ratio'].mean()
+    full = _attach_climatology(panel, country_table, global_table)
+    models = _fit_quantiles(full[SEASON_FEATURES], np.log(full['ratio'].clip(lower=1e-3)))
+
+    return models, country_table, global_table, {
+        'model_mae': float(np.mean(fold_mae)),
+        'flat_mae': float(np.mean(flat_mae)),
+        'coverage': float(np.mean(covered)) * 100,
         'rows': int(len(panel)),
         'cities': int(panel['City'].nunique()),
     }
 
 
-season_model, country_codes, model_report = train_seasonal_model()
+season_models, country_clim, global_clim, model_report = train_seasonal_model()
 
 city_months = data.sort_values('Month')
 city_anchor = float(city_months['PM2.5'].mean())
 city_country = str(df.loc[df['City'] == city, 'Country'].iloc[0]) if (df['City'] == city).any() else ''
 
 
-def season_features(month_value, anchor_pop):
-    return pd.DataFrame([{
+def predict_month(month_value, anchor=None):
+    anchor = city_anchor if anchor is None else anchor
+    shape = global_clim.get(month_value, 1.0)
+    row = pd.DataFrame([{
         'month_sin': np.sin(2 * np.pi * month_value / 12),
         'month_cos': np.cos(2 * np.pi * month_value / 12),
-        'country_code': country_codes.get(city_country, -1),
-        'pop_density': anchor_pop,
+        'log_anchor': np.log1p(anchor),
+        'country_clim': country_clim.get((city_country, month_value), shape),
+        'global_clim': shape,
     }])[SEASON_FEATURES]
-
-
-def predict_month(month_value, anchor=None, anchor_pop=None):
-    anchor = city_anchor if anchor is None else anchor
-    row = season_features(month_value, anchor_pop if anchor_pop is not None else 0.0)
-    per_tree = np.array([t.predict(row)[0] for t in season_model.estimators_])
-    centre = float(per_tree.mean()) * anchor
-    spread = float(per_tree.std()) * anchor
-    return centre, max(centre - 1.28 * spread, 0.0), centre + 1.28 * spread
+    centre, lower, upper = season_models
+    return (float(np.exp(centre.predict(row)[0]) * anchor),
+            float(np.exp(lower.predict(row)[0]) * anchor),
+            float(np.exp(upper.predict(row)[0]) * anchor))
 
 
 # Current Date
@@ -366,7 +399,6 @@ if _start:
 
 # Gauge meter for PM2.5
 if st.session_state.show_content:
-    st.title("Weather & Urban")
     input_features = [[current_month, current_year]]
     def create_gauge_chart(pm2_5_value, prediction_value, city):
         fig = go.Figure()
@@ -548,8 +580,9 @@ if st.session_state.show_content:
             f"{model_report['cities']:,} cities. Tested on cities held out of training: "
             f"{model_report['model_mae']:.1f} µg/m³ mean absolute error, against "
             f"{model_report['flat_mae']:.1f} for assuming every month equals the city's "
-            f"annual average. This is climatology, not a weather forecast: it says what "
-            f"a month typically looks like, not what next week will bring."
+            f"annual average. The 80% band covers {model_report['coverage']:.0f}% of held-out "
+            f"months. This is climatology, not a weather forecast: it says what a month "
+            f"typically looks like, not what next week will bring."
         )
 
         # Visualisation
@@ -562,6 +595,12 @@ if st.session_state.show_content:
         ))
 
         if real_time_pm2_5 is not None:
+            fig.add_trace(go.Scatter(
+                x=[current_month, current_month], y=[predicted_low, predicted_high],
+                mode='lines', name='80% interval', showlegend=True,
+                line=dict(color='rgba(255,75,51,0.55)', width=6),
+                hovertemplate='%{y:.1f} µg/m³<extra>80% interval</extra>',
+            ))
             fig.add_trace(go.Scatter(
                 x=[current_month], y=[predicted_pm2_5], mode='markers+text', name='Prediction',
                 marker=dict(color='red', size=10),

@@ -36,8 +36,18 @@ interval taken from the spread across the forest's trees.
 The model predicts the *shape* of a city's year, not its level. It learns a
 monthly multiplier from 25,510 city-months across 2,106 cities, then scales that
 by the city's own typical level. Tested on whole cities held out of training it
-lands at 5.1 µg/m³ mean absolute error, against 9.5 for assuming every month
-equals the annual average. About 47% better, on cities it has never seen.
+lands at 4.7 µg/m³ mean absolute error, against 9.5 for assuming every month
+equals the annual average. Half the error, on cities it has never seen.
+
+The interval is real rather than a proxy: separate gradient boosters fit the
+10th and 90th percentiles, and across held-out months that band contains the
+true value 78% of the time against a nominal 80%.
+
+Things that were tried and did not survive measurement. Population density made
+it very slightly worse, so it is not a feature. A plain Random Forest on the raw
+ratio scored 5.1. What helped was per-country monthly climatology as a feature,
+a log target so multiplicative errors are symmetric, and boosting instead of
+bagging.
 
 Three things it does not do, said plainly.
 
