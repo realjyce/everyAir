@@ -418,6 +418,9 @@
 }
 
 .stButton > button[kind="primary"] {
+    background: #004aad;
+    border: 1px solid #004aad;
+    color: #ffffff;
     border-radius: 999px;
     padding: 0.6em 2.4em;
     font-weight: 600;
@@ -426,8 +429,17 @@
 }
 
 .stButton > button[kind="primary"]:hover {
+    background: #0057cc;
+    border-color: #ffde59;
+    color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 6px 22px rgba(0, 60, 139, 0.45);
+    box-shadow: 0 6px 22px rgba(0, 74, 173, 0.45);
+}
+
+.stButton > button[kind="primary"]:focus:not(:active) {
+    background: #004aad;
+    border-color: #ffde59;
+    color: #ffffff;
 }
 
 .stButton > button[kind="primary"]:active {

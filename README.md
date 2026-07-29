@@ -64,11 +64,26 @@ directly from population density scored 21.9 MAE, worse than plain monthly
 climatology at 17.6. Population describes emission potential, not what the air is
 doing. That result is why the model predicts shape and takes level as given.
 
-Missing, in rough order of how much they would help: mixing height, which is the
-strongest single control on surface concentration, precipitation for wet
-deposition, wind vector for ventilation and transport, and upwind active fire
-counts. In Southeast Asia the February to April peak is largely agricultural
-burning, much of it across a border.
+Real meteorology was tried and left out, which was not the expected answer.
+Open-Meteo serves ERA5 without an API key, so boundary layer height,
+precipitation, wind and temperature were pulled for a 152 city sample and
+tested properly.
+
+Meteorology does carry signal. Without the country climatology feature, adding
+it took MAE from 15.9 to 13.1. But country-month climatology on its own gets to
+10.9, and adding meteorology on top of it moves the number by 1.4%, which is
+noise.
+
+That makes sense once you see it. A per-country monthly climatology is already
+an empirical summary of that region's seasonal weather and its burning
+calendar. Monthly mean boundary layer height is a blurrier version of the same
+information. Meteorology would earn its place in a daily or weekly forecast,
+where climatology has nothing useful to say, but this dataset is monthly means
+for a single year.
+
+Upwind fire counts from NASA FIRMS are the remaining candidate and are not
+implemented. FIRMS needs a free key tied to an email, and on the evidence above
+the burning signal is probably inside the country climatology already.
 
 ### Weather and urban features
 

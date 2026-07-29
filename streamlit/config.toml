@@ -3,6 +3,7 @@ port = 8501
 
 [theme]
 base="light"
+primaryColor="#004aad"
 
 [browser]
 title = "everyAir"
